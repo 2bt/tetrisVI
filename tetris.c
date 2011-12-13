@@ -7,25 +7,26 @@
 
 
 enum {
-	PLAYER_COUNT = 6
+	MAX_PLAYERS = 6
 };
 
-static Grid grids[PLAYER_COUNT];
+static Grid grids[MAX_PLAYERS];
+static int player_count;
+
 
 void load() {
 	int i;
-	for(i = 0; i < PLAYER_COUNT; i++)
-		init_grid(&grids[i]);
+	for(i = 0; i < MAX_PLAYERS; i++) init_grid(&grids[i]);
+	
+	player_count = 1;
 }
 
 void update() {
 
 	int i;
-	for(i = 0; i < PLAYER_COUNT; i++)
-		update_grid(&grids[i]);
+	for(i = 0; i < player_count; i++) update_grid(&grids[i]);
 
-	for(i = 0; i < PLAYER_COUNT; i++)
-		draw_grid(&grids[i], i * 12 + 1);
+	for(i = 0; i < player_count; i++) draw_grid(&grids[i], i * 12 + 1);
 }
 
 
