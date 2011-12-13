@@ -20,7 +20,7 @@ void pixel(int x, int y, unsigned int color) {
 int button_down(unsigned int button) {
 	assert(button < 8);
 //	return button_state[button];
-	return button_state[button]-->0; // hacky
+	return button_state[button]-->0; // FIXME
 }
 
 
