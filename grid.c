@@ -76,6 +76,7 @@ void init_grid(Grid* grid) {
 	grid->level_progress = 0;
 	grid->lines = 0;
 	grid->state = STATE_NORMAL;
+	grid->animation = 0;
 	memset(grid->matrix, 0, sizeof(grid->matrix));
 	memset(grid->highlight, 0, sizeof(grid->highlight));
 	new_stone(grid);
@@ -138,9 +139,8 @@ static void update_grid_normal(Grid* grid) {
 				grid->highlight[y] = (x == GRID_WIDTH);
 			}
 			grid->state = lines ? STATE_CLEARLINES : STATE_WAIT;
-			grid->animation = rand() % ANIMATION_COUNT;
-			grid->animation = 1;
 			grid->state_delay = 0;
+			if(++grid->animation == ANIMATION_COUNT) grid->animation = 0;
 		}
 	}
 }
@@ -243,6 +243,16 @@ void update_grid(Grid* grid) {
 
 void draw_grid(Grid* grid, int x_offset) {
 	int x, y;
+
+	for(y = 0; y < 4; y++) {
+		for(x = 0; x < 4; x++) {
+			unsigned int color = PALETTE[0];
+			if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
+				color = PALETTE[grid->next_stone + 1];
+			}
+			pixel(x + 7, y + 6, color);
+		}
+	}
 
 	for(y = 0; y < GRID_HEIGHT; y++) {
 		for(x = 0; x < GRID_WIDTH; x++) {
