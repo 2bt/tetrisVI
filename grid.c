@@ -30,6 +30,7 @@ static const unsigned int PALETTE[] = {
 
 enum {
 	ANIMATION_SHIFT,
+	ANIMATION_VANISH,
 	ANIMATION_COUNT
 };
 
@@ -138,6 +139,7 @@ static void update_grid_normal(Grid* grid) {
 			}
 			grid->state = lines ? STATE_CLEARLINES : STATE_WAIT;
 			grid->animation = rand() % ANIMATION_COUNT;
+			grid->animation = 1;
 			grid->state_delay = 0;
 		}
 	}
@@ -168,14 +170,30 @@ static void update_grid_clearlines(Grid* grid) {
 		}
 		break;
 
+	case ANIMATION_VANISH:
+		if(grid->state_delay & 1) {
+			for(y = 0; y < GRID_HEIGHT; y++) {
+				if(!grid->highlight[y]) continue;
 
+				x = rand() % GRID_WIDTH;
+				for(i = 0; i < GRID_WIDTH; i++) {
+					if(grid->matrix[y][x]) {
+						grid->matrix[y][x] = 0;
+						break;
+					}
+					if(++x == GRID_WIDTH) x = 0;
+				}
+
+			}
+		}
+		break;
 
 	default: break;
 	}
 
 
 	// erase lines
-	if(++grid->state_delay >= 30) {
+	if(++grid->state_delay >= 24) {
 		for(y = 0; y < GRID_HEIGHT; y++) {
 			if(!grid->highlight[y]) continue;
 			grid->highlight[y] = 0;
@@ -195,11 +213,10 @@ static void update_grid_clearlines(Grid* grid) {
 		grid->state = STATE_NORMAL;
 	}
 }
+
 static void update_grid_wait(Grid* grid) {
 	if(++grid->state_delay > 15) grid->state = STATE_NORMAL;
 }
-
-
 
 
 void update_grid(Grid* grid) {
