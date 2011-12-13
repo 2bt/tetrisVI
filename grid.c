@@ -71,20 +71,6 @@ static int collision(Grid* grid, int top_also) {
 }
 
 
-void init_grid(Grid* grid) {
-	grid->ticks_per_drop = 30;
-	grid->level_progress = 0;
-	grid->lines = 0;
-	grid->state = STATE_NORMAL;
-	grid->animation = 0;
-	memset(grid->matrix, 0, sizeof(grid->matrix));
-	memset(grid->highlight, 0, sizeof(grid->highlight));
-	new_stone(grid);
-	new_stone(grid);
-}
-
-
-
 static void update_grid_normal(Grid* grid) {
 	int i, j, x, y;
 
@@ -191,7 +177,6 @@ static void update_grid_clearlines(Grid* grid) {
 	default: break;
 	}
 
-
 	// erase lines
 	if(++grid->state_delay >= 24) {
 		for(y = 0; y < GRID_HEIGHT; y++) {
@@ -216,6 +201,19 @@ static void update_grid_clearlines(Grid* grid) {
 
 static void update_grid_wait(Grid* grid) {
 	if(++grid->state_delay > 15) grid->state = STATE_NORMAL;
+}
+
+
+void init_grid(Grid* grid) {
+	grid->ticks_per_drop = 30;
+	grid->level_progress = 0;
+	grid->lines = 0;
+	grid->state = STATE_NORMAL;
+	grid->animation = 0;
+	memset(grid->matrix, 0, sizeof(grid->matrix));
+	memset(grid->highlight, 0, sizeof(grid->highlight));
+	new_stone(grid);
+	new_stone(grid);
 }
 
 
