@@ -15,16 +15,8 @@ static const char STONES[7][16] = {
 	{ 0, 0,11, 0, 0,13,15, 7, 0, 0,14, 0, 0, 0, 0, 0 }
 };
 
-static const unsigned int PALETTE[] = {
-	0x111111,
-	0x7f0000,
-	0x007f00,
-	0x00007f,
-	0x007f7f,
-	0x7f007f,
-	0x7f7f00,
-	0x7f7f7f,
-	0xffffff,
+static const char PALETTE[8] = {
+	1, 14, 13, 12, 11, 10, 9, 15 
 };
 
 
@@ -69,6 +61,8 @@ static int collision(Grid* grid, int top_also) {
 	}
 	return 0;
 }
+
+
 
 
 static void update_grid_normal(Grid* grid) {
@@ -204,16 +198,25 @@ static void update_grid_wait(Grid* grid) {
 }
 
 
+
 void init_grid(Grid* grid) {
 	grid->ticks_per_drop = 30;
 	grid->level_progress = 0;
 	grid->lines = 0;
-	grid->state = STATE_NORMAL;
 	grid->animation = 0;
+	grid->state = STATE_NORMAL;
 	memset(grid->matrix, 0, sizeof(grid->matrix));
 	memset(grid->highlight, 0, sizeof(grid->highlight));
 	new_stone(grid);
 	new_stone(grid);
+/*
+	int x, y;
+	for(y = 0; y < GRID_HEIGHT + 2; y++) {
+		for(x = 0; x < GRID_WIDTH + 2; x++) {
+			pixel(x, y + 10, 15);
+		}
+	}
+*/
 }
 
 
@@ -244,7 +247,7 @@ void draw_grid(Grid* grid, int x_offset) {
 
 	for(y = 0; y < 4; y++) {
 		for(x = 0; x < 4; x++) {
-			unsigned int color = PALETTE[0];
+			unsigned char color = 0;
 			if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
 				color = PALETTE[grid->next_stone + 1];
 			}
@@ -254,14 +257,13 @@ void draw_grid(Grid* grid, int x_offset) {
 
 	for(y = 0; y < GRID_HEIGHT; y++) {
 		for(x = 0; x < GRID_WIDTH; x++) {
-			unsigned int color = PALETTE[grid->matrix[y][x]];
+			unsigned char color = PALETTE[grid->matrix[y][x]];
 			if(	grid->state == STATE_NORMAL &&
 				x >= grid->x && x < grid->x + 4 &&
 				y >= grid->y && y < grid->y + 4 &&
 				STONES[grid->stone][(x - grid->x) * 4 + y - grid->y] & grid->rot) {
 				color = PALETTE[grid->stone + 1];
 			}
-
 			pixel(x + x_offset, y + 11, color);
 		}
 	}
