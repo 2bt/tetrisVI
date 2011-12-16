@@ -5,6 +5,7 @@
 #include <SDL/SDL.h>
 
 #include "main.h"
+#include "sdl_draw/SDL_draw.h"
 
 enum { ZOOM = 10 };
 
@@ -57,7 +58,6 @@ int main(int argc, char *argv[]) {
 	};
                                                                         
 
-	int x, y;
 	int running = 1;
 	while(running) {
 		SDL_Event ev;
@@ -119,10 +119,10 @@ int main(int argc, char *argv[]) {
 
 		update();
 
-		SDL_Rect rect = { 0, 0, ZOOM, ZOOM };
-		for(x = rect.x = 0; x < DISPLAY_WIDTH; rect.x += ZOOM, x++)
-			for(y = rect.y = 0; y < DISPLAY_HEIGHT; rect.y += ZOOM, y++)
-				SDL_FillRect(screen, &rect, color[display[y][x]]);
+		for(int x = 0; x < DISPLAY_WIDTH; x++)
+			for(int y = 0; y < DISPLAY_HEIGHT; y++)
+				Draw_FillCircle(screen, ZOOM*x+(ZOOM/2),ZOOM*y+(ZOOM/2), (ZOOM*0.45), color[display[y][x]]);
+//				SDL_FillRect(screen, &rect, color[display[y][x]]);
 
 		SDL_Flip(screen);
 		SDL_Delay(20);
