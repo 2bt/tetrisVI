@@ -1,3 +1,5 @@
+#ifndef GRID_H_
+#define GRID_H_
 
 enum {
 	GRID_WIDTH = 10,
@@ -32,3 +34,5 @@ typedef struct Grid {
 void init_grid(Grid* grid);
 void update_grid(Grid* grid);
 void draw_grid(Grid* grid, int x_offset);
+
+#endif

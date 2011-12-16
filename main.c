@@ -5,6 +5,7 @@
 #include <SDL/SDL.h>
 
 #include "main.h"
+#include "tetris.h";
 
 enum { ZOOM = 10 };
 
@@ -27,7 +28,7 @@ int button_down(unsigned int button) {
 
 int main(int argc, char *argv[]) {
 	srand(SDL_GetTicks());
-	load();
+	tetris_load();
 
 	SDL_Surface* screen = SDL_SetVideoMode(
 		DISPLAY_WIDTH * ZOOM,
@@ -117,7 +118,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		update();
+		tetris_update();
 
 		SDL_Rect rect = { 0, 0, ZOOM, ZOOM };
 		for(x = rect.x = 0; x < DISPLAY_WIDTH; rect.x += ZOOM, x++)

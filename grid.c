@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "main.h"
 #include "grid.h"
+#include "main.h"
 
 static const char STONES[7][16] = {
 	{ 0, 0, 0, 0, 0,15,15, 0, 0,15,15, 0, 0, 0, 0, 0 },
