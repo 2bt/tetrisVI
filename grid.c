@@ -15,19 +15,6 @@ static const char STONES[7][16] = {
 	{ 0, 0,11, 0, 0,13,15, 7, 0, 0,14, 0, 0, 0, 0, 0 }
 };
 
-static const unsigned int PALETTE[] = {
-	0x111111,
-	0x7f0000,
-	0x007f00,
-	0x00007f,
-	0x007f7f,
-	0x7f007f,
-	0x7f7f00,
-	0x7f7f7f,
-	0xffffff,
-};
-
-
 enum {
 	ANIMATION_SHIFT,
 	ANIMATION_VANISH,
@@ -80,6 +67,17 @@ void init_grid(Grid* grid) {
 	memset(grid->highlight, 0, sizeof(grid->highlight));
 	new_stone(grid);
 	new_stone(grid);
+
+    int x, y;
+
+	for(y = 0; y < GRID_HEIGHT+2; y++) {
+		for(x = 0; x < GRID_WIDTH+2; x++) {
+            pixel(x,y+10, 15);
+        }
+    }
+
+
+
 }
 
 
@@ -246,14 +244,13 @@ void draw_grid(Grid* grid, int x_offset) {
 
 	for(y = 0; y < GRID_HEIGHT; y++) {
 		for(x = 0; x < GRID_WIDTH; x++) {
-			unsigned int color = PALETTE[grid->matrix[y][x]];
+			unsigned int color = grid->matrix[y][x];
 			if(	grid->state == STATE_NORMAL &&
 				x >= grid->x && x < grid->x + 4 &&
 				y >= grid->y && y < grid->y + 4 &&
 				STONES[grid->stone][(x - grid->x) * 4 + y - grid->y] & grid->rot) {
-				color = PALETTE[grid->stone + 1];
+				color = grid->stone + 1;
 			}
-
 			pixel(x + x_offset, y + 11, color);
 		}
 	}

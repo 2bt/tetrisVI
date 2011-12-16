@@ -14,6 +14,7 @@ static int button_state[8];
 void pixel(int x, int y, unsigned int color) {
 	assert(x < DISPLAY_WIDTH);
 	assert(y < DISPLAY_HEIGHT);
+	assert(color < 16);
 	display[y][x] = color;
 }
 
@@ -36,6 +37,25 @@ int main(int argc, char *argv[]) {
 
 	SDL_EnableKeyRepeat(100, 30);	// must be deleted
 
+    unsigned int color[] = {
+		SDL_MapRGB(screen->format, 0x00,0x10,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x20,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x30,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x40,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x50,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x60,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x70,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x80,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x90,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xa0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xb0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xc0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xd0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xe0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xf0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xff,0x00)
+	};
+                                                                        
 
 	int x, y;
 	int running = 1;
@@ -99,7 +119,7 @@ int main(int argc, char *argv[]) {
 		SDL_Rect rect = { 0, 0, ZOOM, ZOOM };
 		for(x = rect.x = 0; x < DISPLAY_WIDTH; rect.x += ZOOM, x++)
 			for(y = rect.y = 0; y < DISPLAY_HEIGHT; rect.y += ZOOM, y++)
-				SDL_FillRect(screen, &rect, display[y][x]);
+				SDL_FillRect(screen, &rect, color[display[y][x]]);
 
 		SDL_Flip(screen);
 		SDL_Delay(20);
