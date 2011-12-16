@@ -5,7 +5,7 @@
 #include <SDL/SDL.h>
 
 #include "main.h"
-#include "tetris.h";
+#include "tetris.h"
 #include "sdl_draw/SDL_draw.h"
 
 enum { ZOOM = 10 };
