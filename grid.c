@@ -4,6 +4,8 @@
 
 #include "grid.h"
 #include "main.h"
+#include "pixelfonts/5x3/font.h"
+
 
 static const char STONES[7][16] = {
 	{ 0, 0, 0, 0, 0,15,15, 0, 0,15,15, 0, 0, 0, 0, 0 },

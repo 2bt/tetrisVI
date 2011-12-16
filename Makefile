@@ -2,6 +2,7 @@ UNAME := $(shell uname)
 
 SRC = $(wildcard *.c)
 SRC+= sdl_draw/SDL_draw.c
+SRC+= pixelfonts/5x3/font.c
 
 FLAGS = -Wall -O2 --std=gnu99
 
