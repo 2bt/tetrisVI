@@ -4,8 +4,7 @@
 
 #include "grid.h"
 #include "main.h"
-#include "pixelfonts/5x3/font.h"
-
+#include "libs/text.h"
 
 static const char STONES[7][16] = {
 	{ 0, 0, 0, 0, 0,15,15, 0, 0,15,15, 0, 0, 0, 0, 0 },
@@ -211,14 +210,10 @@ void init_grid(Grid* grid) {
 	memset(grid->highlight, 0, sizeof(grid->highlight));
 	new_stone(grid);
 	new_stone(grid);
-/*
-	int x, y;
-	for(y = 0; y < GRID_HEIGHT + 2; y++) {
-		for(x = 0; x < GRID_WIDTH + 2; x++) {
-			pixel(x, y + 10, 15);
-		}
-	}
-*/
+
+
+	//does nothing right now
+	print_5x3_at(0,0,"Player 1");
 }
 
 
