@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "main.h"
 #include "grid.h"
+#include "tetris.h"
 
 
 enum {
@@ -14,14 +14,14 @@ static Grid grids[MAX_PLAYERS];
 static int player_count;
 
 
-void load() {
+void tetris_load() {
 	int i;
 	for(i = 0; i < MAX_PLAYERS; i++) init_grid(&grids[i]);
 	
 	player_count = 1;
 }
 
-void update() {
+void tetris_update() {
 
 	int i;
 	for(i = 0; i < player_count; i++) update_grid(&grids[i]);
