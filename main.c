@@ -64,6 +64,9 @@ int main(int argc, char *argv[]) {
 		while(SDL_PollEvent(&ev)) {
 
 			switch(ev.type) {
+			case SDL_QUIT:
+				running = 0;
+				break;
 			case SDL_KEYUP:
 			case SDL_KEYDOWN:
 
