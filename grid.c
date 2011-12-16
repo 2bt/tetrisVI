@@ -16,7 +16,7 @@ static const char STONES[7][16] = {
 };
 
 static const char PALETTE[8] = {
-	1, 14, 13, 12, 11, 10, 9, 15 
+	1, 15, 9, 14, 10, 13, 11, 12 
 };
 
 
