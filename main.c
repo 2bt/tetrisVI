@@ -13,7 +13,6 @@ enum { ZOOM = 10 };
 static unsigned char display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 static int button_state[8];
 
-
 void pixel(int x, int y, unsigned char color) {
 	assert(x < DISPLAY_WIDTH);
 	assert(y < DISPLAY_HEIGHT);
