@@ -18,6 +18,7 @@ enum {
 };
 
 int button_down(unsigned int button);
+
 void pixel(int x, int y, unsigned int color);
 
 #endif

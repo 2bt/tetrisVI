@@ -10,10 +10,11 @@
 
 enum { ZOOM = 10 };
 
-static unsigned int display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
+static unsigned char display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 static int button_state[8];
 
-void pixel(int x, int y, unsigned int color) {
+
+void pixel(int x, int y, unsigned char color) {
 	assert(x < DISPLAY_WIDTH);
 	assert(y < DISPLAY_HEIGHT);
 	assert(color < 16);
@@ -36,10 +37,7 @@ int main(int argc, char *argv[]) {
 		DISPLAY_HEIGHT * ZOOM,
 		32, SDL_SWSURFACE | SDL_DOUBLEBUF);
 
-
-	SDL_EnableKeyRepeat(100, 30);	// must be deleted
-
-    unsigned int color[] = {
+	const unsigned int COLORS[] = {
 		SDL_MapRGB(screen->format, 0x00,0x10,0x00),
 		SDL_MapRGB(screen->format, 0x00,0x20,0x00),
 		SDL_MapRGB(screen->format, 0x00,0x30,0x00),
@@ -57,7 +55,8 @@ int main(int argc, char *argv[]) {
 		SDL_MapRGB(screen->format, 0x00,0xf0,0x00),
 		SDL_MapRGB(screen->format, 0x00,0xff,0x00)
 	};
-                                                                        
+
+	SDL_EnableKeyRepeat(100, 30);	// FIXME: must be deleted
 
 	int running = 1;
 	while(running) {
@@ -122,8 +121,7 @@ int main(int argc, char *argv[]) {
 
 		for(int x = 0; x < DISPLAY_WIDTH; x++)
 			for(int y = 0; y < DISPLAY_HEIGHT; y++)
-				Draw_FillCircle(screen, ZOOM*x+(ZOOM/2),ZOOM*y+(ZOOM/2), (ZOOM*0.45), color[display[y][x]]);
-//				SDL_FillRect(screen, &rect, color[display[y][x]]);
+				Draw_FillCircle(screen, ZOOM*x+(ZOOM/2),ZOOM*y+(ZOOM/2), (ZOOM*0.45), COLORS[display[y][x]]);
 
 		SDL_Flip(screen);
 		SDL_Delay(20);
