@@ -5,12 +5,13 @@
 #include <SDL/SDL.h>
 
 #include "main.h"
+#include "tetris.h";
+#include "sdl_draw/SDL_draw.h"
 
 enum { ZOOM = 10 };
 
 static unsigned char display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 static int button_state[8];
-
 
 void pixel(int x, int y, unsigned char color) {
 	assert(x < DISPLAY_WIDTH);
@@ -28,7 +29,7 @@ int button_down(unsigned int button) {
 
 int main(int argc, char *argv[]) {
 	srand(SDL_GetTicks());
-	load();
+	tetris_load();
 
 	SDL_Surface* screen = SDL_SetVideoMode(
 		DISPLAY_WIDTH * ZOOM,
@@ -56,7 +57,6 @@ int main(int argc, char *argv[]) {
 
 	SDL_EnableKeyRepeat(100, 30);	// FIXME: must be deleted
 
-	int x, y;
 	int running = 1;
 	while(running) {
 		SDL_Event ev;
@@ -116,12 +116,11 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		update();
+		tetris_update();
 
-		SDL_Rect rect = { 0, 0, ZOOM, ZOOM };
-		for(x = rect.x = 0; x < DISPLAY_WIDTH; rect.x += ZOOM, x++)
-			for(y = rect.y = 0; y < DISPLAY_HEIGHT; rect.y += ZOOM, y++)
-				SDL_FillRect(screen, &rect, COLORS[display[y][x]]);
+		for(int x = 0; x < DISPLAY_WIDTH; x++)
+			for(int y = 0; y < DISPLAY_HEIGHT; y++)
+				Draw_FillCircle(screen, ZOOM*x+(ZOOM/2),ZOOM*y+(ZOOM/2), (ZOOM*0.45), COLORS[display[y][x]]);
 
 		SDL_Flip(screen);
 		SDL_Delay(20);

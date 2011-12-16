@@ -1,3 +1,5 @@
+#ifndef MAIN_H_
+#define MAIN_H_
 
 enum {
 	DISPLAY_WIDTH = 72,
@@ -16,7 +18,7 @@ enum {
 };
 
 int button_down(unsigned int button);
-void pixel(int x, int y, unsigned char color);
-void load();
-void update();
 
+void pixel(int x, int y, unsigned char color);
+
+#endif
