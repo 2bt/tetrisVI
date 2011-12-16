@@ -8,7 +8,7 @@
 #include "tetris.h";
 #include "sdl_draw/SDL_draw.h"
 
-enum { ZOOM = 10 };
+enum { ZOOM = 14 };
 
 static unsigned char display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 static int button_state[8];

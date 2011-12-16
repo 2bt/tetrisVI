@@ -1,0 +1,3 @@
+[submodule "pixelfonts"]
+	path = pixelfonts
+	url = git@github.com:sebseb7/pixelfonts.git
