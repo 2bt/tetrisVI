@@ -11,7 +11,7 @@
 enum { ZOOM = 14 };
 
 static unsigned char display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
-static int button_state[8];
+static int button_state[6][8];
 
 void pixel(int x, int y, unsigned char color) {
 	assert(x < DISPLAY_WIDTH);
@@ -20,10 +20,10 @@ void pixel(int x, int y, unsigned char color) {
 	display[y][x] = color;
 }
 
-int button_down(unsigned int button) {
+int button_down(unsigned int nr, unsigned int button) {
 	assert(button < 8);
 //	return button_state[button];
-	return button_state[button]-->0; // FIXME
+	return button_state[nr][button]-->0; // FIXME
 }
 
 
@@ -75,36 +75,36 @@ int main(int argc, char *argv[]) {
 					break;
 
 				case SDLK_RIGHT:
-					button_state[BUTTON_RIGHT] = (ev.type == SDL_KEYDOWN);
+					button_state[0][BUTTON_RIGHT] = (ev.type == SDL_KEYDOWN);
 					break;
 
 				case SDLK_LEFT:
-					button_state[BUTTON_LEFT] = (ev.type == SDL_KEYDOWN);
+					button_state[0][BUTTON_LEFT] = (ev.type == SDL_KEYDOWN);
 					break;
 
 				case SDLK_UP:
-					button_state[BUTTON_UP] = (ev.type == SDL_KEYDOWN);
+					button_state[0][BUTTON_UP] = (ev.type == SDL_KEYDOWN);
 					break;
 
 				case SDLK_DOWN:
-					button_state[BUTTON_DOWN] = (ev.type == SDL_KEYDOWN);
+					button_state[0][BUTTON_DOWN] = (ev.type == SDL_KEYDOWN);
 					break;
 
 				case SDLK_x:
-					button_state[BUTTON_A] = (ev.type == SDL_KEYDOWN);
+					button_state[0][BUTTON_A] = (ev.type == SDL_KEYDOWN);
 					break;
 
 				case SDLK_c:
-					button_state[BUTTON_B] = (ev.type == SDL_KEYDOWN);
+					button_state[0][BUTTON_B] = (ev.type == SDL_KEYDOWN);
 					break;
 
 				case SDLK_RETURN:
-					button_state[BUTTON_START] = (ev.type == SDL_KEYDOWN);
+					button_state[0][BUTTON_START] = (ev.type == SDL_KEYDOWN);
 					break;
 
 				case SDLK_LSHIFT:
 				case SDLK_RSHIFT:
-					button_state[BUTTON_SELECT] = (ev.type == SDL_KEYDOWN);
+					button_state[0][BUTTON_SELECT] = (ev.type == SDL_KEYDOWN);
 					break;
 
 				default:

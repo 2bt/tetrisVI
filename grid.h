@@ -14,6 +14,7 @@ enum {
 };
 
 typedef struct Grid {
+	int nr;
 	int x;
 	int y;
 	int rot;
@@ -31,8 +32,8 @@ typedef struct Grid {
 	unsigned char highlight[GRID_HEIGHT];
 } Grid;
 
-void init_grid(Grid* grid);
+void init_grid(Grid* grid, int nr);
 void update_grid(Grid* grid);
-void draw_grid(Grid* grid, int x_offset);
+void draw_grid(Grid* grid);
 
 #endif

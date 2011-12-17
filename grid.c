@@ -77,7 +77,7 @@ static void update_grid_normal(Grid* grid) {
 	int i, j, x, y;
 
 	// rotation
-	j = button_down(BUTTON_A) - button_down(BUTTON_B);
+	j = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
 	if(j) {
 		i = grid->rot;
 		grid->rot = (j > 0)
@@ -89,13 +89,13 @@ static void update_grid_normal(Grid* grid) {
 
 	// horizontal movement
 	i = grid->x;
-	grid->x += button_down(BUTTON_RIGHT) - button_down(BUTTON_LEFT);
+	grid->x += button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
 	if(i != grid->x && collision(grid, 0)) grid->x = i;
 
 
 	// vertical movement
 	grid->tick++;
-	if(button_down(BUTTON_DOWN) || grid->tick >= grid->ticks_per_drop) {
+	if(button_down(grid->nr, BUTTON_DOWN) || grid->tick >= grid->ticks_per_drop) {
 		grid->tick = 0;
 		grid->y++;
 		if(collision(grid, 0)) {
@@ -214,8 +214,8 @@ static void update_grid_wait(Grid* grid) {
 }
 
 
-
-void init_grid(Grid* grid) {
+void init_grid(Grid* grid, int nr) {
+	grid->nr = nr;
 	grid->ticks_per_drop = 20;
 	grid->level_progress = 0;
 	grid->lines = 0;
@@ -252,7 +252,7 @@ void update_grid(Grid* grid) {
 }
 
 
-void draw_grid(Grid* grid, int x_offset) {
+void draw_grid(Grid* grid) {
 	int x, y;
 
 	for(y = 0; y < 4; y++) {
@@ -261,7 +261,7 @@ void draw_grid(Grid* grid, int x_offset) {
 			if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
 				color = grid->next_stone + 1;
 			}
-			pixel(x_offset + x + 7, y + 6, PALETTE[color]);
+			pixel(grid->nr * 12 + x + 8, y + 6, PALETTE[color]);
 		}
 	}
 
@@ -274,10 +274,10 @@ void draw_grid(Grid* grid, int x_offset) {
 				STONES[grid->stone][(x - grid->x) * 4 + y - grid->y] & grid->rot) {
 				color = grid->stone + 1;
 			}
-			pixel(x + x_offset, y + 11, PALETTE[color]);
+			pixel(grid->nr * 12 + 1 + x, y + 11, PALETTE[color]);
 		}
 	}
-	print_unsigned_5x3_at(x_offset + 1, 0, grid->lines, 3, ' ', 8);
+	print_unsigned_5x3_at(grid->nr * 12 + 2, 0, grid->lines, 3, ' ', 8);
 
 }
 
