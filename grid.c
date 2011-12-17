@@ -201,7 +201,7 @@ static void update_grid_wait(Grid* grid) {
 
 
 void init_grid(Grid* grid) {
-	grid->ticks_per_drop = 30;
+	grid->ticks_per_drop = 20;
 	grid->level_progress = 0;
 	grid->lines = 0;
 	grid->animation = 0;
@@ -214,7 +214,6 @@ void init_grid(Grid* grid) {
 
 //	print_5x3_at(0,0,"Text Test",15);
 }
-
 
 void update_grid(Grid* grid) {
 
