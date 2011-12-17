@@ -41,8 +41,8 @@ static void new_stone(Grid* grid) {
 	grid->y = -3;
 	grid->rot = grid->next_rot;
 	grid->stone = grid->next_stone;
-	grid->next_rot = 1 << (rand() & 3);
-	grid->next_stone = rand() % 7;
+	grid->next_rot = 1 << rand_int(3);
+	grid->next_stone = rand_int(7);
 }
 
 
@@ -170,7 +170,7 @@ static void update_grid_clearlines(Grid* grid) {
 			for(y = 0; y < GRID_HEIGHT; y++) {
 				if(!grid->highlight[y]) continue;
 
-				x = rand() % GRID_WIDTH;
+				x = rand_int(GRID_WIDTH);
 				for(i = 0; i < GRID_WIDTH; i++) {
 					if(grid->matrix[y][x]) {
 						grid->matrix[y][x] = 0;

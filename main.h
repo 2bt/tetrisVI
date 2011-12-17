@@ -18,7 +18,7 @@ enum {
 };
 
 int button_down(unsigned int button);
-
+unsigned int rand_int(unsigned int limit);
 void pixel(int x, int y, unsigned char color);
 
 #endif
