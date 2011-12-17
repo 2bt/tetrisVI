@@ -212,8 +212,8 @@ void init_grid(Grid* grid) {
 	new_stone(grid);
 
 
-	//does nothing right now
-	print_5x3_at(0,0,"Player 1");
+	print_5x3_at(0,0,"Text Test",15);
+
 }
 
 
