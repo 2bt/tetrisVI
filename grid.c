@@ -123,17 +123,25 @@ static void update_grid_normal(Grid* grid) {
 		if(grid_collision(grid, 0)) {
 			grid->y--;
 
+			int over = 0;
 			// check for game over
 			if(grid_collision(grid, 1)) {
 				grid->state = STATE_GAMEOVER;
-				return;
+				over = 1;
 			}
 
 			// copy stone to grid
-			for(y = 0; y < 4; y++)
-				for(x = 0; x < 4; x++)
-					if(STONES[grid->stone][x * 4 + y] & grid->rot)
+			for(y = 0; y < 4; y++) {
+				for(x = 0; x < 4; x++) {
+					if(STONES[grid->stone][x * 4 + y] & grid->rot &&
+						y + grid->y >= 0) {
 						grid->matrix[y + grid->y][x + grid->x] = grid->stone + 1;
+					}
+				}
+			}
+
+			if(over) return;
+
 
 			// get a new stone
 			new_stone(grid);
