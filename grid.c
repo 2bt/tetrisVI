@@ -287,11 +287,11 @@ void draw_grid(Grid* grid) {
 
 	for(y = 0; y < 4; y++) {
 		for(x = 0; x < 4; x++) {
-			int color = 0;
+			int color = COLOR_BLACK;
 			if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
 				color = grid->next_stone + 1;
 			}
-			pixel(grid->nr * 12 + x + 8, y + 6, PALETTE[color]);
+			pixel(grid->nr * 12 + x + 7, y + 6, PALETTE[color]);
 		}
 	}
 
@@ -307,7 +307,7 @@ void draw_grid(Grid* grid) {
 			pixel(grid->nr * 12 + 1 + x, y + 11, PALETTE[color]);
 		}
 	}
-	print_unsigned_5x3_at(grid->nr * 12 + 2, 0, grid->lines, 3, ' ', 8);
+	print_unsigned_5x3_at(grid->nr * 12 + 1, 0, grid->lines, 3, ' ', 8);
 
 }
 
