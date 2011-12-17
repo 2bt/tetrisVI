@@ -22,8 +22,7 @@ void pixel(int x, int y, unsigned char color) {
 
 int button_down(unsigned int nr, unsigned int button) {
 	assert(button < 8);
-//	return button_state[button];
-	return button_state[nr][button]-->0; // FIXME
+	return button_state[nr][button];
 }
 
 
@@ -54,8 +53,6 @@ int main(int argc, char *argv[]) {
 		SDL_MapRGB(screen->format, 0x00,0xf0,0x00),
 		SDL_MapRGB(screen->format, 0x00,0xff,0x00)
 	};
-
-	SDL_EnableKeyRepeat(100, 30);	// FIXME: must be deleted
 
 	int running = 1;
 	while(running) {
@@ -120,7 +117,8 @@ int main(int argc, char *argv[]) {
 
 		for(int x = 0; x < DISPLAY_WIDTH; x++)
 			for(int y = 0; y < DISPLAY_HEIGHT; y++)
-				Draw_FillCircle(screen, ZOOM*x + ZOOM/2, ZOOM*y + ZOOM/2, ZOOM*0.45, COLORS[display[y][x]]);
+				Draw_FillCircle(screen, ZOOM*x + ZOOM/2, ZOOM*y + ZOOM/2,
+					ZOOM*0.45, COLORS[display[y][x]]);
 
 		SDL_Flip(screen);
 		SDL_Delay(20);

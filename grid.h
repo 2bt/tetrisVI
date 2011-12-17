@@ -30,6 +30,9 @@ typedef struct Grid {
 	int animation;
 	unsigned char matrix[GRID_HEIGHT][GRID_WIDTH];
 	unsigned char highlight[GRID_HEIGHT];
+	int input_mov;
+	int input_rep;
+	int input_rot;
 } Grid;
 
 void init_grid(Grid* grid, int nr);

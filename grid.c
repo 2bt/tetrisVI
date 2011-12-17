@@ -43,6 +43,9 @@ static void new_stone(Grid* grid) {
 	grid->stone = grid->next_stone;
 	grid->next_rot = 1 << rand_int(3);
 	grid->next_stone = rand_int(7);
+	grid->input_mov = 0;
+	grid->input_rep = 0;
+	grid->input_rot = 0;
 }
 
 
@@ -75,12 +78,24 @@ static int collision(Grid* grid, int top_also) {
 
 static void update_grid_normal(Grid* grid) {
 	int i, j, x, y;
+	int mov, rot;
+
+	// input stuff magic
+	mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
+	if(mov != grid->input_mov) grid->input_rep = 0;
+	grid->input_mov = mov;
+	if(--grid->input_rep <= 0) grid->input_rep = 3;
+	else mov = 0;
+	j = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
+	rot = 0;
+	if(j != grid->input_rot) rot = j;
+	grid->input_rot = j;
+
 
 	// rotation
-	j = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
-	if(j) {
+	if(rot) {
 		i = grid->rot;
-		grid->rot = (j > 0)
+		grid->rot = (rot > 0)
 			? grid->rot * 2 % 15
 			: (grid->rot / 2 | grid->rot * 8) & 15;
 		if(collision(grid, 0)) grid->rot = i;
@@ -89,7 +104,7 @@ static void update_grid_normal(Grid* grid) {
 
 	// horizontal movement
 	i = grid->x;
-	grid->x += button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
+	grid->x += mov;
 	if(i != grid->x && collision(grid, 0)) grid->x = i;
 
 
