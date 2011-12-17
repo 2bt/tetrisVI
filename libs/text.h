@@ -3,5 +3,6 @@
 
 void print_5x3_at (int x,int y, char *text, char brightness);
 void putc_5x3_at (int x,int y, char text, char brightness);
+void print_num_5x3_at (int x,int y, int number, int length, int pad, char brightness);
 
 #endif
