@@ -212,9 +212,7 @@ void init_grid(Grid* grid) {
 	new_stone(grid);
 
 
-	print_5x3_at(0,0,"Text Test",15);
-
-
+//	print_5x3_at(0,0,"Text Test",15);
 }
 
 
@@ -249,7 +247,7 @@ void draw_grid(Grid* grid, int x_offset) {
 			if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
 				color = PALETTE[grid->next_stone + 1];
 			}
-			pixel(x + 7, y + 6, color);
+			pixel(x_offset + x + 7, y + 6, color);
 		}
 	}
 
@@ -265,8 +263,7 @@ void draw_grid(Grid* grid, int x_offset) {
 			pixel(x + x_offset, y + 11, color);
 		}
 	}
-	print_num_5x3_at(30,10,grid->tick,3,1,15);
-	print_num_5x3_at(30,16,grid->y,3,1,15);
+	print_unsigned_5x3_at(x_offset + 1, 0, grid->lines, 3, ' ', 8);
 
 }
 

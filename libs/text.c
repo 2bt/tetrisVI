@@ -39,35 +39,38 @@ void putc_5x3_at (int x,int y, char text, char brightness)
 	}
 }
 
-void print_num_5x3_at (int x,int y, int number, int length, int pad, char brightness)
+void print_unsigned_5x3_at(int x, int y, unsigned int number, int length, char pad, char brightness) {
+	x += length * 4 - 1;
+	int i;
+	for(i = 0; i < length; i++) {
+		int d = number % 10;
+		putc_5x3_at(
+			x -= 4, y,
+			!i || number > 0 ? '0' + d : pad,
+			brightness);
+		number /= 10;
+	}
+}
+
+
+void print_num_5x3_at (int x, int y, int number, int length, int pad, char brightness)
 {
+
 	char s[10];
-
-
-	sprintf(s, "%i",number);
-
+	sprintf(s, "%i", number);
 	int len = strlen(s);
 
-	if (length < len)
-	{
-		for (int i = 0; i < length; i++)
-		{
-			putc_5x3_at (x+=4, y, '*', brightness);
+	if (length < len) {
+		for (int i = 0; i < length; i++) {
+			putc_5x3_at (x += 4, y, '*', brightness);
 		}
 		return;
 	}
 
-	for (int i = 0; i < length - len; i++)
-	{
-		if (pad)
-		{
-			putc_5x3_at (x+=4, y, '0', brightness);
-		}
-		else
-		{
-			putc_5x3_at (x+=4, y, ' ', brightness);
-		}
+	for (int i = 0; i < length - len; i++) {
+		putc_5x3_at (x += 4, y, pad, brightness);
 	}
 	print_5x3_at(x, y, (char*)s, brightness);
+
 }
 

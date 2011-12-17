@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 
 		for(int x = 0; x < DISPLAY_WIDTH; x++)
 			for(int y = 0; y < DISPLAY_HEIGHT; y++)
-				Draw_FillCircle(screen, ZOOM*x+(ZOOM/2),ZOOM*y+(ZOOM/2), (ZOOM*0.45), COLORS[display[y][x]]);
+				Draw_FillCircle(screen, ZOOM*x + ZOOM/2, ZOOM*y + ZOOM/2, ZOOM*0.45, COLORS[display[y][x]]);
 
 		SDL_Flip(screen);
 		SDL_Delay(20);
