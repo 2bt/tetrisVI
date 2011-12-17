@@ -49,7 +49,7 @@ static void new_stone(Grid* grid) {
 }
 
 
-static int collision(Grid* grid, int top_also) {
+static int grid_collision(Grid* grid, int top_also) {
 	int x, y;
 	for(y = 0; y < 4; y++) {
 		for(x = 0; x < 4; x++) {
@@ -74,25 +74,30 @@ static int collision(Grid* grid, int top_also) {
 }
 
 
+static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
+
+	*mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
+	if(*mov != grid->input_mov) grid->input_rep = 0;
+	grid->input_mov = *mov;
+	if(grid->input_rep <= 0) grid->input_rep = 2;
+	else {
+		grid->input_rep--;
+		*mov = 0;
+	}
+
+	*rot = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
+	if(*rot != grid->input_rot) grid->input_rot = *rot;
+	else *rot = 0;
+
+	*drop = button_down(grid->nr, BUTTON_DOWN);
+}
 
 
 static void update_grid_normal(Grid* grid) {
 	int i, x, y;
-	int mov, rot;
 
-	// input stuff magic
-	mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
-	if(mov != grid->input_mov) grid->input_rep = 0;
-	grid->input_mov = mov;
-	if(grid->input_rep <= 0) grid->input_rep = 2;
-	else {
-		grid->input_rep--;
-		mov = 0;
-	}
-	rot = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
-	if(rot != grid->input_rot) grid->input_rot = rot;
-	else rot = 0;
-
+	int mov, rot, drop;
+	get_grid_input(grid, &mov, &rot, &drop);
 
 	// rotation
 	if(rot) {
@@ -100,26 +105,26 @@ static void update_grid_normal(Grid* grid) {
 		grid->rot = (rot > 0)
 			? grid->rot * 2 % 15
 			: (grid->rot / 2 | grid->rot * 8) & 15;
-		if(collision(grid, 0)) grid->rot = i;
+		if(grid_collision(grid, 0)) grid->rot = i;
 	}
 
 
 	// horizontal movement
 	i = grid->x;
 	grid->x += mov;
-	if(i != grid->x && collision(grid, 0)) grid->x = i;
+	if(i != grid->x && grid_collision(grid, 0)) grid->x = i;
 
 
 	// vertical movement
 	grid->tick++;
-	if(button_down(grid->nr, BUTTON_DOWN) || grid->tick >= grid->ticks_per_drop) {
+	if(drop || grid->tick >= grid->ticks_per_drop) {
 		grid->tick = 0;
 		grid->y++;
-		if(collision(grid, 0)) {
+		if(grid_collision(grid, 0)) {
 			grid->y--;
 
 			// check for game over
-			if(collision(grid, 1)) {
+			if(grid_collision(grid, 1)) {
 				grid->state = STATE_GAMEOVER;
 				return;
 			}
