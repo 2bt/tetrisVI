@@ -4,6 +4,7 @@
 
 #include "grid.h"
 #include "main.h"
+#include "libs/text.h"
 
 static const char STONES[7][16] = {
 	{ 0, 0, 0, 0, 0,15,15, 0, 0,15,15, 0, 0, 0, 0, 0 },
@@ -209,14 +210,11 @@ void init_grid(Grid* grid) {
 	memset(grid->highlight, 0, sizeof(grid->highlight));
 	new_stone(grid);
 	new_stone(grid);
-/*
-	int x, y;
-	for(y = 0; y < GRID_HEIGHT + 2; y++) {
-		for(x = 0; x < GRID_WIDTH + 2; x++) {
-			pixel(x, y + 10, 15);
-		}
-	}
-*/
+
+
+	print_5x3_at(0,0,"Text Test",15);
+
+
 }
 
 
@@ -267,6 +265,9 @@ void draw_grid(Grid* grid, int x_offset) {
 			pixel(x + x_offset, y + 11, color);
 		}
 	}
+	print_num_5x3_at(30,10,grid->tick,3,1,15);
+	print_num_5x3_at(30,16,grid->y,3,1,15);
+
 }
 
 

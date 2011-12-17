@@ -5,7 +5,6 @@
 #include "grid.h"
 #include "tetris.h"
 
-
 enum {
 	MAX_PLAYERS = 6
 };
