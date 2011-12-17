@@ -77,19 +77,21 @@ static int collision(Grid* grid, int top_also) {
 
 
 static void update_grid_normal(Grid* grid) {
-	int i, j, x, y;
+	int i, x, y;
 	int mov, rot;
 
 	// input stuff magic
 	mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
 	if(mov != grid->input_mov) grid->input_rep = 0;
 	grid->input_mov = mov;
-	if(--grid->input_rep <= 0) grid->input_rep = 3;
-	else mov = 0;
-	j = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
-	rot = 0;
-	if(j != grid->input_rot) rot = j;
-	grid->input_rot = j;
+	if(grid->input_rep <= 0) grid->input_rep = 2;
+	else {
+		grid->input_rep--;
+		mov = 0;
+	}
+	rot = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
+	if(rot != grid->input_rot) grid->input_rot = rot;
+	else rot = 0;
 
 
 	// rotation
