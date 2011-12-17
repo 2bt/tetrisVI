@@ -16,12 +16,19 @@ static const char STONES[7][16] = {
 	{ 0, 0,11, 0, 0,13,15, 7, 0, 0,14, 0, 0, 0, 0, 0 }
 };
 
-static const char PALETTE[8] = {
-	1, 15, 9, 14, 10, 13, 11, 12 
+static const char PALETTE[] = {
+	1, // background
+	15, 9, 14, 10, 13, 11, 12, // stones
+	0, 15, // blinking
+};
+enum { // indices in PALETTE
+	COLOR_BACKGROUND = 0,
+	COLOR_BLACK = 8,
+	COLOR_WHITE = 9,
 };
 
-
 enum {
+	ANIMATION_BLINK,
 	ANIMATION_SHIFT,
 	ANIMATION_VANISH,
 	ANIMATION_COUNT
@@ -121,7 +128,6 @@ static void update_grid_normal(Grid* grid) {
 			}
 			grid->state = lines ? STATE_CLEARLINES : STATE_WAIT;
 			grid->state_delay = 0;
-			if(++grid->animation == ANIMATION_COUNT) grid->animation = 0;
 		}
 	}
 }
@@ -132,6 +138,14 @@ static void update_grid_clearlines(Grid* grid) {
 
 	// animations
 	switch(grid->animation) {
+
+	case ANIMATION_BLINK:
+		i = (grid->state_delay & 2) ? COLOR_WHITE : COLOR_BLACK;
+		for(y = 0; y < GRID_HEIGHT; y++) {
+			if(!grid->highlight[y]) continue;
+			for(x = 0; x < GRID_WIDTH; x++) grid->matrix[y][x] = i;
+		}
+		break;
 
 	case ANIMATION_SHIFT:
 		if(grid->state_delay & 1) {
@@ -174,6 +188,7 @@ static void update_grid_clearlines(Grid* grid) {
 
 	// erase lines
 	if(++grid->state_delay >= 24) {
+		if(++grid->animation == ANIMATION_COUNT) grid->animation = 0;
 		for(y = 0; y < GRID_HEIGHT; y++) {
 			if(!grid->highlight[y]) continue;
 			grid->highlight[y] = 0;
@@ -242,24 +257,24 @@ void draw_grid(Grid* grid, int x_offset) {
 
 	for(y = 0; y < 4; y++) {
 		for(x = 0; x < 4; x++) {
-			unsigned char color = 0;
+			int color = 0;
 			if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
-				color = PALETTE[grid->next_stone + 1];
+				color = grid->next_stone + 1;
 			}
-			pixel(x_offset + x + 7, y + 6, color);
+			pixel(x_offset + x + 7, y + 6, PALETTE[color]);
 		}
 	}
 
 	for(y = 0; y < GRID_HEIGHT; y++) {
 		for(x = 0; x < GRID_WIDTH; x++) {
-			unsigned char color = PALETTE[grid->matrix[y][x]];
+			int color = grid->matrix[y][x];
 			if(	grid->state == STATE_NORMAL &&
 				x >= grid->x && x < grid->x + 4 &&
 				y >= grid->y && y < grid->y + 4 &&
 				STONES[grid->stone][(x - grid->x) * 4 + y - grid->y] & grid->rot) {
-				color = PALETTE[grid->stone + 1];
+				color = grid->stone + 1;
 			}
-			pixel(x + x_offset, y + 11, color);
+			pixel(x + x_offset, y + 11, PALETTE[color]);
 		}
 	}
 	print_unsigned_5x3_at(x_offset + 1, 0, grid->lines, 3, ' ', 8);
