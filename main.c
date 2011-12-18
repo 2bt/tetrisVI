@@ -13,10 +13,15 @@ enum { ZOOM = 14 };
 static unsigned char display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 static int button_state[6][8];
 
+int rerender = 1;
+
 void pixel(int x, int y, unsigned char color) {
 	assert(x < DISPLAY_WIDTH);
 	assert(y < DISPLAY_HEIGHT);
 	assert(color < 16);
+	
+	if( display[y][x] != color)	rerender = 1;
+	
 	display[y][x] = color;
 }
 
@@ -115,15 +120,17 @@ int main(int argc, char *argv[]) {
 
 		tetris_update();
 
-		for(int x = 0; x < DISPLAY_WIDTH; x++)
-			for(int y = 0; y < DISPLAY_HEIGHT; y++)
-				Draw_FillCircle(screen, ZOOM*x + ZOOM/2, ZOOM*y + ZOOM/2,
-					ZOOM*0.45, COLORS[display[y][x]]);
+		if(rerender) {
+			rerender = 0;
+			for(int x = 0; x < DISPLAY_WIDTH; x++)
+				for(int y = 0; y < DISPLAY_HEIGHT; y++)
+					Draw_FillCircle(screen, ZOOM*x + ZOOM/2, ZOOM*y + ZOOM/2, ZOOM*0.45, COLORS[display[y][x]]);
+			SDL_Flip(screen);
+		}
 
-		SDL_Flip(screen);
 		SDL_Delay(20);
 	}
-
+	
 	SDL_Quit();
 	return 0;
 }
