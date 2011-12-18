@@ -17,7 +17,7 @@ void tetris_load() {
 	int i;
 	for(i = 0; i < MAX_PLAYERS; i++) init_grid(&grids[i]);
 	
-	player_count = 3;
+	player_count = 6;
 }
 
 void tetris_update() {
