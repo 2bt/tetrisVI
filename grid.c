@@ -76,7 +76,18 @@ static int grid_collision(Grid* grid, int top_also) {
 
 static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 
-	*mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
+	if(grid->nr == 0) {
+		*mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
+		*rot = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
+		*drop = button_down(grid->nr, BUTTON_DOWN);
+	}
+	else {
+		// TODO: impleremt bot here...
+		*mov = 0;
+		*rot = 0;
+		*drop = 0;
+	}
+
 	if(*mov != grid->input_mov) grid->input_rep = 0;
 	grid->input_mov = *mov;
 	if(grid->input_rep <= 0) grid->input_rep = 2;
@@ -84,12 +95,8 @@ static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 		grid->input_rep--;
 		*mov = 0;
 	}
-
-	*rot = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
 	if(*rot != grid->input_rot) grid->input_rot = *rot;
 	else *rot = 0;
-
-	*drop = button_down(grid->nr, BUTTON_DOWN);
 }
 
 
