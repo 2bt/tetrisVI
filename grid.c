@@ -103,6 +103,7 @@ static void update_grid_normal(Grid* grid) {
 
 			// check for game over
 			if(collision(grid, 1)) {
+				grid->state_delay=0;
 				grid->state = STATE_GAMEOVER;
 				return;
 			}
@@ -213,6 +214,14 @@ static void update_grid_wait(Grid* grid) {
 	if(++grid->state_delay > 15) grid->state = STATE_NORMAL;
 }
 
+static void update_grid_gameover(Grid* grid) {
+	int i = (grid->state_delay & 2) ? COLOR_WHITE : COLOR_BLACK;
+	for(int y = 0; y < GRID_HEIGHT; y++) {
+		for(int x = 0; x < GRID_WIDTH; x++) grid->matrix[y][x] = i;
+	}
+	if(++grid->state_delay > 15) init_grid(grid);
+}
+
 
 
 void init_grid(Grid* grid) {
@@ -243,6 +252,10 @@ void update_grid(Grid* grid) {
 
 	case STATE_CLEARLINES:
 		update_grid_clearlines(grid);
+		break;
+
+	case STATE_GAMEOVER:
+		update_grid_gameover(grid);
 		break;
 
 
