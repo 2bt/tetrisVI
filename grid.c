@@ -76,17 +76,18 @@ static int grid_collision(Grid* grid, int top_also) {
 
 static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 
-	if(grid->nr == 0) {
+//	if(grid->nr == 0) {
 		*mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
 		*rot = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
 		*drop = button_down(grid->nr, BUTTON_DOWN);
-	}
+/*	}
 	else {
 		// TODO: impleremt bot here...
 		*mov = 0;
 		*rot = 0;
 		*drop = 0;
 	}
+*/
 
 	if(*mov != grid->input_mov) grid->input_rep = 0;
 	grid->input_mov = *mov;
@@ -250,6 +251,14 @@ static void update_grid_wait(Grid* grid) {
 	if(++grid->state_delay > 15) grid->state = STATE_NORMAL;
 }
 
+static void update_grid_free(Grid* grid) {
+	++grid->state_delay;
+}
+
+static void update_grid_gameover(Grid* grid) {
+	if(++grid->state_delay > 100) init_grid(grid, grid->nr);
+}
+
 
 void init_grid(Grid* grid, int nr) {
 	grid->nr = nr;
@@ -257,19 +266,28 @@ void init_grid(Grid* grid, int nr) {
 	grid->level_progress = 0;
 	grid->lines = 0;
 	grid->animation = 0;
-	grid->state = STATE_NORMAL;
+	grid->state = STATE_FREE;
 	memset(grid->matrix, 0, sizeof(grid->matrix));
 	memset(grid->highlight, 0, sizeof(grid->highlight));
 	new_stone(grid);
 	new_stone(grid);
-
-
-//	print_5x3_at(0,0,"Text Test",15);
 }
 
-void update_grid(Grid* grid) {
+int activate_grid(Grid* grid) {
+	if(grid->state == STATE_FREE) {
+		grid->state = STATE_NORMAL;
+		return 1;
+	}
+	return 0;
+}
 
+
+void update_grid(Grid* grid) {
 	switch(grid->state) {
+	case STATE_FREE:
+		update_grid_free(grid);
+		break;
+
 	case STATE_NORMAL:
 		update_grid_normal(grid);
 		break;
@@ -282,6 +300,9 @@ void update_grid(Grid* grid) {
 		update_grid_clearlines(grid);
 		break;
 
+	case STATE_GAMEOVER:
+		update_grid_gameover(grid);
+		break;
 
 	default: break;
 
@@ -292,29 +313,50 @@ void update_grid(Grid* grid) {
 void draw_grid(Grid* grid) {
 	int x, y;
 
-	for(y = 0; y < 4; y++) {
-		for(x = 0; x < 4; x++) {
-			int color = COLOR_BLACK;
-			if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
-				color = grid->next_stone + 1;
+	switch(grid->state) {
+	case STATE_FREE:
+
+		// TODO: nice scroll text
+
+		break;
+
+	case STATE_NORMAL:
+	case STATE_WAIT:
+	case STATE_CLEARLINES:
+	case STATE_GAMEOVER:
+
+		// preview
+		for(y = 0; y < 4; y++) {
+			for(x = 0; x < 4; x++) {
+				int color = COLOR_BLACK;
+				if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
+					color = grid->next_stone + 1;
+				}
+				pixel(grid->nr * 12 + x + 7, y + 6, PALETTE[color]);
 			}
-			pixel(grid->nr * 12 + x + 7, y + 6, PALETTE[color]);
 		}
+		// matrix
+		for(y = 0; y < GRID_HEIGHT; y++) {
+			for(x = 0; x < GRID_WIDTH; x++) {
+				int color = grid->matrix[y][x];
+				if(	grid->state == STATE_NORMAL &&
+					x >= grid->x && x < grid->x + 4 &&
+					y >= grid->y && y < grid->y + 4 &&
+					STONES[grid->stone][(x - grid->x) * 4 + y - grid->y] & grid->rot) {
+					color = grid->stone + 1;
+				}
+				pixel(grid->nr * 12 + 1 + x, y + 11, PALETTE[color]);
+			}
+		}
+		// score
+		print_unsigned_5x3_at(grid->nr * 12 + 1, 0, grid->lines, 3, ' ', 8);
+
+		break;
+
+	default: break;
+
 	}
 
-	for(y = 0; y < GRID_HEIGHT; y++) {
-		for(x = 0; x < GRID_WIDTH; x++) {
-			int color = grid->matrix[y][x];
-			if(	grid->state == STATE_NORMAL &&
-				x >= grid->x && x < grid->x + 4 &&
-				y >= grid->y && y < grid->y + 4 &&
-				STONES[grid->stone][(x - grid->x) * 4 + y - grid->y] & grid->rot) {
-				color = grid->stone + 1;
-			}
-			pixel(grid->nr * 12 + 1 + x, y + 11, PALETTE[color]);
-		}
-	}
-	print_unsigned_5x3_at(grid->nr * 12 + 1, 0, grid->lines, 3, ' ', 8);
 
 }
 

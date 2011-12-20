@@ -7,6 +7,7 @@ enum {
 };
 
 enum {
+	STATE_FREE,
 	STATE_NORMAL,
 	STATE_WAIT,
 	STATE_CLEARLINES,
@@ -36,6 +37,7 @@ typedef struct Grid {
 } Grid;
 
 void init_grid(Grid* grid, int nr);
+int activate_grid(Grid* grid);
 void update_grid(Grid* grid);
 void draw_grid(Grid* grid);
 
