@@ -10,26 +10,68 @@
 
 enum { ZOOM = 14 };
 
-static unsigned char display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
-static int button_state[8];
+typedef struct {
+	int nr;
+	int state;
+	int buttons[8];
+	char name[32];
+} Player;
 
-int rerender = 0;
+static Player			players[6];
+static int				input_map[6];
+static unsigned char	display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
+static int				rerender = 1;
+
+
+static void set_button(int input_nr, int button, int state) {
+
+	Player* p = &players[input_nr];
+	if(!p->state) {
+		p->nr = add_player();	// TODO: player nick etc.
+		if(p->nr >= 0) {
+			p->state = 1;
+			input_map[p->nr] = input_nr;
+		}
+	}
+	p->buttons[button] = state;
+}
+
+int button_down(unsigned int nr, unsigned int button) {
+	Player* p = &players[input_map[nr]];
+	if(p->state) {
+		return p->buttons[button];
+	}
+	return 0;
+}
+
+
+static int map_key(unsigned int sdl_key) {
+	switch(sdl_key) {
+	case SDLK_RIGHT:	return BUTTON_RIGHT;
+	case SDLK_LEFT:		return BUTTON_LEFT;
+	case SDLK_UP:		return BUTTON_UP;
+	case SDLK_DOWN:		return BUTTON_DOWN;
+	case SDLK_x:		return BUTTON_A;
+	case SDLK_c:		return BUTTON_B;
+	case SDLK_RETURN:	return BUTTON_START;
+	case SDLK_LSHIFT:
+	case SDLK_RSHIFT:	return BUTTON_SELECT;
+	default:			return -1;
+	}
+}
+
+
 
 void pixel(int x, int y, unsigned char color) {
 	assert(x < DISPLAY_WIDTH);
 	assert(y < DISPLAY_HEIGHT);
 	assert(color < 16);
-	
-	if( display[y][x] != color)	rerender = 1;
-	
-	display[y][x] = color;
+	if(display[y][x] != color) {
+		rerender = 1;
+		display[y][x] = color;
+	}
 }
 
-int button_down(unsigned int button) {
-	assert(button < 8);
-//	return button_state[button];
-	return button_state[button]-->0; // FIXME
-}
 
 
 int main(int argc, char *argv[]) {
@@ -60,7 +102,8 @@ int main(int argc, char *argv[]) {
 		SDL_MapRGB(screen->format, 0x00,0xff,0x00)
 	};
 
-	SDL_EnableKeyRepeat(100, 30);	// FIXME: must be deleted
+	int input_nr = 0;
+	int key;
 
 	int running = 1;
 	while(running) {
@@ -74,65 +117,59 @@ int main(int argc, char *argv[]) {
 			case SDL_KEYUP:
 			case SDL_KEYDOWN:
 
+				key = map_key(ev.key.keysym.sym);
+				if(key > 0) {
+					set_button(input_nr, key, ev.type == SDL_KEYDOWN);
+					break;
+				}
+				if(ev.type == SDL_KEYUP) break;
+
 				switch(ev.key.keysym.sym) {
 				case SDLK_ESCAPE:
 					running = 0;
 					break;
 
-				case SDLK_RIGHT:
-					button_state[BUTTON_RIGHT] = (ev.type == SDL_KEYDOWN);
+				case SDLK_1:
+					input_nr = 0;
 					break;
 
-				case SDLK_LEFT:
-					button_state[BUTTON_LEFT] = (ev.type == SDL_KEYDOWN);
+				case SDLK_2:
+					input_nr = 1;
 					break;
 
-				case SDLK_UP:
-					button_state[BUTTON_UP] = (ev.type == SDL_KEYDOWN);
+				case SDLK_3:
+					input_nr = 2;
 					break;
 
-				case SDLK_DOWN:
-					button_state[BUTTON_DOWN] = (ev.type == SDL_KEYDOWN);
+				case SDLK_4:
+					input_nr = 3;
 					break;
 
-				case SDLK_x:
-					button_state[BUTTON_A] = (ev.type == SDL_KEYDOWN);
+				case SDLK_5:
+					input_nr = 4;
 					break;
 
-				case SDLK_c:
-					button_state[BUTTON_B] = (ev.type == SDL_KEYDOWN);
+				case SDLK_6:
+					input_nr = 5;
 					break;
 
-				case SDLK_RETURN:
-					button_state[BUTTON_START] = (ev.type == SDL_KEYDOWN);
-					break;
-
-				case SDLK_LSHIFT:
-				case SDLK_RSHIFT:
-					button_state[BUTTON_SELECT] = (ev.type == SDL_KEYDOWN);
-					break;
-
-				default:
-					break;
+				default: break;
 				}
-
-			default:
-				break;
+			default: break;
 			}
 		}
 
 		tetris_update();
 
-		if(rerender)
-		{
-			rerender=0;
+		if(rerender) {
+			rerender = 0;
 			for(int x = 0; x < DISPLAY_WIDTH; x++)
 				for(int y = 0; y < DISPLAY_HEIGHT; y++)
-					Draw_FillCircle(screen, ZOOM*x + ZOOM/2, ZOOM*y + ZOOM/2, ZOOM*0.45, COLORS[display[y][x]]);
-
+					Draw_FillCircle(screen, ZOOM * x + ZOOM / 2,
+						ZOOM * y + ZOOM / 2, ZOOM * 0.45, COLORS[display[y][x]]);
 			SDL_Flip(screen);
 		}
-		
+
 		SDL_Delay(20);
 	}
 	
