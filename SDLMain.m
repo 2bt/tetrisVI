@@ -64,10 +64,14 @@ static NSString *getApplicationName(void)
 @end
 #endif
 
-@interface NSApplication (SDLApplication)
+@interface SDLApplication :NSApplication
+{
+	CFMachPortRef			eventTap;
+}
+- (void)startRerouteingKeyEvents;
 @end
 
-@implementation NSApplication (SDLApplication)
+@implementation SDLApplication 
 /* Invoked from the Quit menu item */
 - (void)terminate:(id)sender
 {
@@ -76,6 +80,60 @@ static NSString *getApplicationName(void)
     event.type = SDL_QUIT;
     SDL_PushEvent(&event);
 }
+
+static CGEventRef ImmersiveKeyCallback(CGEventTapProxy proxy, CGEventType event_type, CGEventRef cgevent, void *myself)
+{	
+	switch( event_type )
+	{
+		case kCGEventKeyDown:
+		case kCGEventKeyUp:		{
+									NSEvent *theEvent = [NSEvent eventWithCGEvent:cgevent];
+									
+									if( NSCommandKeyMask & [theEvent modifierFlags] )
+									{
+										[NSApp sendEvent:theEvent];
+										return NULL;
+									}
+								};break;
+		default:;
+	}
+	return cgevent;
+}
+
+
+- (void)startRerouteingKeyEvents
+{
+	if( ![NSEvent respondsToSelector:@selector(eventWithCGEvent:)] )
+	{
+		return;
+	}
+
+	CGEventMask		eventMask	= CGEventMaskBit(kCGEventKeyDown);
+
+	if( NULL != (eventTap = CGEventTapCreate( kCGAnnotatedSessionEventTap, kCGHeadInsertEventTap,   kCGEventTapOptionListenOnly , eventMask, ImmersiveKeyCallback, self)) )
+	{
+		CFRunLoopSourceRef	runLoopSourceRef = CFMachPortCreateRunLoopSource(NULL, eventTap, 0);
+		
+		if( runLoopSourceRef )
+		{
+			CFRunLoopAddSource([[NSRunLoop currentRunLoop] getCFRunLoop], runLoopSourceRef, kCFRunLoopCommonModes);
+			CGEventTapEnable(eventTap, YES);
+			CFRelease(runLoopSourceRef);
+		}
+		else
+		{
+			NSLog(@"Could not create CFRunLoopAddSource");
+			CFRelease(eventTap);
+			eventTap = NULL;
+		}
+	}
+	else
+	{
+		NSLog(@"Could not create eventTap for immersive mode");
+	}
+}
+
+
 @end
 
 /* The main class of the application, the application's delegate */
@@ -201,7 +259,7 @@ static void CustomApplicationMain (int argc, char **argv)
     SDLMain				*sdlMain;
 
     /* Ensure the application object is initialised */
-    [NSApplication sharedApplication];
+    [SDLApplication sharedApplication];
     
 #ifdef SDL_USE_CPS
     {
@@ -224,6 +282,7 @@ static void CustomApplicationMain (int argc, char **argv)
     [NSApp setDelegate:sdlMain];
     
     /* Start the main event loop */
+	[NSApp startRerouteingKeyEvents];
     [NSApp run];
     
     [sdlMain release];
