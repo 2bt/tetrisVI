@@ -74,20 +74,119 @@ static int grid_collision(Grid* grid, int top_also) {
 }
 
 
+static void stone_to_grid(Grid* grid) {
+	int x, y;
+	for(y = 0; y < 4; y++) {
+		for(x = 0; x < 4; x++) {
+			if(STONES[grid->stone][x * 4 + y] & grid->rot &&
+				y + grid->y >= 0) {
+				grid->matrix[y + grid->y][x + grid->x] = grid->stone + 1;
+			}
+		}
+	}
+}
+
+
+
+
+static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
+	// stupid
+
+	static Grid bot_grid;
+	Grid* bot = &bot_grid;
+
+	*mov = 0;
+	*rot = 0;
+	*drop = 0;
+
+	int magic = 0;
+	int first = 1;
+
+	int save_rot = grid->rot;
+	int r;
+	for(r = 0; r < 4; r++) {
+		grid->rot = 1 << r;
+		if(grid_collision(grid, 0)) continue;
+
+		int save_x = grid->x;
+		while(!grid_collision(grid, 0)) grid->x--;
+		grid->x++;
+
+		while(!grid_collision(grid, 0)) {
+			int save_y = grid->y;
+
+			while(!grid_collision(grid, 0)) grid->y++;
+			grid->y--;
+
+			memcpy(bot, grid, sizeof(Grid));
+			stone_to_grid(bot);
+
+
+			// evaluate grid
+			int m = 0;
+			int x, y;
+			for(y = 0; y < GRID_HEIGHT; y++) {
+
+				int s = 0;
+				for(x = 0; x < GRID_WIDTH; x++) {
+					if(bot->matrix[y][x]) {
+						s++;
+						m += y;
+					}
+					else {
+						int q = 8;
+						int i;
+						for(i = y; i >= 0; i--) {
+							if(bot->matrix[i][x]) {
+								m -= q;
+								break;
+							}
+							else {
+								q += 4;
+							}
+						}
+					
+					}
+				}
+				if(s == GRID_WIDTH) {
+					m += 250;
+				}
+			}
+
+			if(first || m > magic) {
+				magic = m;
+				first = 0;
+
+				*mov = (grid->x > save_x) - (grid->x < save_x);
+				*rot = !rand_int(3) ? save_rot != grid->rot : 0;
+				*drop = abs(grid->x - save_x) < 2 && save_rot == grid->rot;
+			}
+
+
+			grid->y = save_y;
+			grid->x++;
+		}
+		grid->x = save_x;
+	}
+	grid->rot = save_rot;
+
+}
+
+
 static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 
-//	if(grid->nr == 0) {
+	if(grid->nr != 0) {
 		*mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
 		*rot = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
 		*drop = button_down(grid->nr, BUTTON_DOWN);
-/*	}
+	}
 	else {
 		// TODO: impleremt bot here...
-		*mov = 0;
-		*rot = 0;
-		*drop = 0;
+		grid_bot(grid, mov, rot, drop);
+//		*mov = 0;
+//		*rot = 0;
+//		*drop = 1;
 	}
-*/
 
 	if(*mov != grid->input_mov) grid->input_rep = 0;
 	grid->input_mov = *mov;
@@ -99,7 +198,6 @@ static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 	if(*rot != grid->input_rot) grid->input_rot = *rot;
 	else *rot = 0;
 }
-
 
 static void update_grid_normal(Grid* grid) {
 	int i, x, y;
@@ -134,19 +232,12 @@ static void update_grid_normal(Grid* grid) {
 			int over = 0;
 			// check for game over
 			if(grid_collision(grid, 1)) {
+				grid->state_delay = 0;
 				grid->state = STATE_GAMEOVER;
 				over = 1;
 			}
 
-			// copy stone to grid
-			for(y = 0; y < 4; y++) {
-				for(x = 0; x < 4; x++) {
-					if(STONES[grid->stone][x * 4 + y] & grid->rot &&
-						y + grid->y >= 0) {
-						grid->matrix[y + grid->y][x + grid->x] = grid->stone + 1;
-					}
-				}
-			}
+			stone_to_grid(grid);
 
 			if(over) return;
 
@@ -256,7 +347,18 @@ static void update_grid_free(Grid* grid) {
 }
 
 static void update_grid_gameover(Grid* grid) {
-	if(++grid->state_delay > 100) init_grid(grid, grid->nr);
+	int x, y, i;
+	i = (grid->state_delay & 2) ? COLOR_WHITE : COLOR_BLACK;
+
+	for(x = 0; x < GRID_WIDTH; x++) {
+		for(y = 0; y < GRID_HEIGHT; y++) {
+			grid->matrix[y][x] = i;
+		}
+	}
+
+	if(++grid->state_delay > 25) {
+		init_grid(grid, grid->nr);
+	}
 }
 
 
@@ -271,6 +373,12 @@ void init_grid(Grid* grid, int nr) {
 	memset(grid->highlight, 0, sizeof(grid->highlight));
 	new_stone(grid);
 	new_stone(grid);
+	int x, y;
+	for(x = 0; x < 12; x++) {
+		for(y = 0; y < 32; y++) {
+			pixel(grid->nr * 12 + x, y, 0);
+		}
+	}
 }
 
 int activate_grid(Grid* grid) {
