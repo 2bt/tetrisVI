@@ -88,9 +88,44 @@ static void stone_to_grid(Grid* grid) {
 
 
 
+static int rate_grid(Grid* grid) {
+	// TODO: make it a little less stupid
+
+	int magic = 0;
+	int x, y;
+	for(y = 0; y < GRID_HEIGHT; y++) {
+
+		int s = 0;
+		for(x = 0; x < GRID_WIDTH; x++) {
+			if(grid->matrix[y][x]) {
+				s++;
+				magic += y;
+			}
+			else {
+				int q = 8;
+				int i;
+				for(i = y; i >= 0; i--) {
+					if(grid->matrix[i][x]) {
+						magic -= q;
+						break;
+					}
+					else {
+						q += 4;
+					}
+				}
+			
+			}
+		}
+		if(s == GRID_WIDTH) {
+			magic += 250;
+		}
+	}
+
+	return magic;
+}
+
 
 static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
-	// stupid
 
 	static Grid bot_grid;
 	Grid* bot = &bot_grid;
@@ -121,38 +156,7 @@ static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
 			memcpy(bot, grid, sizeof(Grid));
 			stone_to_grid(bot);
 
-
-			// evaluate grid
-			int m = 0;
-			int x, y;
-			for(y = 0; y < GRID_HEIGHT; y++) {
-
-				int s = 0;
-				for(x = 0; x < GRID_WIDTH; x++) {
-					if(bot->matrix[y][x]) {
-						s++;
-						m += y;
-					}
-					else {
-						int q = 8;
-						int i;
-						for(i = y; i >= 0; i--) {
-							if(bot->matrix[i][x]) {
-								m -= q;
-								break;
-							}
-							else {
-								q += 4;
-							}
-						}
-					
-					}
-				}
-				if(s == GRID_WIDTH) {
-					m += 250;
-				}
-			}
-
+			int m = rate_grid(bot);
 			if(first || m > magic) {
 				magic = m;
 				first = 0;
@@ -162,30 +166,24 @@ static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
 				*drop = abs(grid->x - save_x) < 2 && save_rot == grid->rot;
 			}
 
-
 			grid->y = save_y;
 			grid->x++;
 		}
 		grid->x = save_x;
 	}
 	grid->rot = save_rot;
-
 }
 
 
 static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 
-	if(grid->nr != 0) {
+	if(0) {
 		*mov = button_down(grid->nr, BUTTON_RIGHT) - button_down(grid->nr, BUTTON_LEFT);
 		*rot = button_down(grid->nr, BUTTON_A) - button_down(grid->nr, BUTTON_B);
 		*drop = button_down(grid->nr, BUTTON_DOWN);
 	}
 	else {
-		// TODO: impleremt bot here...
 		grid_bot(grid, mov, rot, drop);
-//		*mov = 0;
-//		*rot = 0;
-//		*drop = 1;
 	}
 
 	if(*mov != grid->input_mov) grid->input_rep = 0;
