@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
@@ -67,7 +66,7 @@ void pixel(int x, int y, unsigned char color) {
 	assert(y < DISPLAY_HEIGHT);
 	assert(color < 16);
 	if(display[y][x] != color) {
-		rerender = 1;
+		rerender=1;
 		display[y][x] = color;
 	}
 }
@@ -104,7 +103,7 @@ int main(int argc, char *argv[]) {
 
 	int input_nr = 5;
 	int key;
-
+	int fast = 0;
 
 	int running = 1;
 	while(running) {
@@ -135,6 +134,11 @@ int main(int argc, char *argv[]) {
 					set_button(input_nr, key, ev.type == SDL_KEYDOWN);
 					break;
 				}
+				if(ev.key.keysym.sym == SDLK_SPACE) {
+					fast ^= ev.type == SDL_KEYDOWN;
+					break;
+				}
+
 				if(ev.type == SDL_KEYUP) break;
 
 				switch(ev.key.keysym.sym) {
@@ -166,6 +170,7 @@ int main(int argc, char *argv[]) {
 					input_nr = 5;
 					break;
 
+
 				default: break;
 				}
 			default: break;
@@ -182,8 +187,8 @@ int main(int argc, char *argv[]) {
 						ZOOM * y + ZOOM / 2, ZOOM * 0.45, COLORS[display[y][x]]);
 			SDL_Flip(screen);
 		}
-
-		SDL_Delay(20);
+		if(!fast)
+			SDL_Delay(20);
 	}
 	
 	SDL_Quit();

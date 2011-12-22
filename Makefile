@@ -5,7 +5,7 @@ SRC+= sdl_draw/SDL_draw.c
 SRC+= pixelfonts/5x3/font.c
 SRC+= $(wildcard libs/*.c)
 
-FLAGS = -Wall -O2 --std=gnu99
+FLAGS = -Wall -O2 --std=gnu99 -fnested-functions
 
 ifeq ($(UNAME), Darwin)
 	FLAGS +=  -I/Library/Frameworks/SDL.framework/Headers SDLmain.m -framework SDL -framework Cocoa
