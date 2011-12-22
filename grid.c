@@ -124,7 +124,6 @@ static int rate_grid(Grid* grid) {
 
 
 	int height = 0;
-	// look for shadowed holes
 	for(y = GRID_HEIGHT - 1; y >= 0; y--) {
 		for(x = 0; x < GRID_WIDTH; x++) {
 			if(grid->matrix[y][x]) height = 19 - y;
