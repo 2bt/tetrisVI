@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 
 	int input_nr = 0;
 	int key;
-
+	int fast = 0;
 	int running = 1;
 	while(running) {
 		SDL_Event ev;
@@ -122,6 +122,11 @@ int main(int argc, char *argv[]) {
 					set_button(input_nr, key, ev.type == SDL_KEYDOWN);
 					break;
 				}
+				if(ev.key.keysym.sym == SDLK_SPACE) {
+					fast ^= ev.type == SDL_KEYDOWN;
+					break;
+				}
+
 				if(ev.type == SDL_KEYUP) break;
 
 				switch(ev.key.keysym.sym) {
@@ -153,6 +158,7 @@ int main(int argc, char *argv[]) {
 					input_nr = 5;
 					break;
 
+
 				default: break;
 				}
 			default: break;
@@ -169,8 +175,8 @@ int main(int argc, char *argv[]) {
 						ZOOM * y + ZOOM / 2, ZOOM * 0.45, COLORS[display[y][x]]);
 			SDL_Flip(screen);
 		}
-
-		SDL_Delay(20);
+		if(!fast)
+			SDL_Delay(20);
 	}
 	
 	SDL_Quit();

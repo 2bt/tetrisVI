@@ -22,6 +22,7 @@ typedef struct Grid {
 	int stone;
 	int next_rot;
 	int next_stone;
+	int stone_count;
 	int tick;
 	int ticks_per_drop;
 	int level_progress;
@@ -29,8 +30,8 @@ typedef struct Grid {
 	int state;
 	int state_delay;
 	int animation;
-	unsigned char matrix[GRID_HEIGHT][GRID_WIDTH];
-	unsigned char highlight[GRID_HEIGHT];
+	char matrix[GRID_HEIGHT][GRID_WIDTH];
+	char highlight[GRID_HEIGHT];
 	int input_mov;
 	int input_rep;
 	int input_rot;
