@@ -91,23 +91,17 @@ static void stone_to_grid(Grid* grid, char color) {
 
 static int rate_grid(Grid* grid) {
 
-	int x, y;
+	int x, y, i;
 	int magic = 0;
-	int height = 0;
-	for(y = GRID_HEIGHT; y >= 0; y--) {
 
+	for(y = 0; y < GRID_HEIGHT; y++) {
 		for(x = 0; x < GRID_WIDTH; x++) {
-			if(!grid->matrix[y][x]) break;
-		}
-		if(x == GRID_WIDTH) magic += 2;
 
-		for(x = 0; x < GRID_WIDTH; x++) {
-			if(grid->matrix[y][x]) {
-				magic += y;
-				height = 19 - y;
-			}
+			if(grid->matrix[y][x]) magic += y;
+			else if(y > 0 && grid->matrix[y - 1][x]) magic -= 20;
+
 			if(grid->matrix[y][x] == -1) {
-				if(y == 0 || grid->matrix[y - 1][x] > 0) magic += 20;
+				if(y > 0 && grid->matrix[y - 1][x] > 0) magic += 20;
 				if(x == 0 || grid->matrix[y][x - 1] > 0) magic += 20;
 				if(y == GRID_HEIGHT - 1 || grid->matrix[y + 1][x] > 0) magic += 20;
 				if(x == GRID_WIDTH - 1  || grid->matrix[y][x + 1] > 0) magic += 20;
@@ -115,7 +109,29 @@ static int rate_grid(Grid* grid) {
 		}
 	}
 
-	magic -= height * 3;
+	// remove complete lines
+	for(y = 0; y < GRID_HEIGHT; y++) {
+		for(x = 0; x < GRID_WIDTH; x++) {
+			if(!grid->matrix[y][x]) break;
+		}
+		if(x == GRID_WIDTH) continue;
+
+		for(i = y; i > 0; i--)
+			for(x = 0; x < GRID_WIDTH; x++)
+				grid->matrix[i][x] = grid->matrix[i - 1][x];
+		for(x = 0; x < GRID_WIDTH; x++) grid->matrix[0][x] = 0;
+	}
+
+
+	int height = 0;
+	// look for shadowed holes
+	for(y = GRID_HEIGHT - 1; y >= 0; y--) {
+		for(x = 0; x < GRID_WIDTH; x++) {
+			if(grid->matrix[y][x]) height = 19 - y;
+		}
+	}
+
+	magic -= height * 4;
 
 	return magic;
 }
@@ -148,20 +164,21 @@ static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
 
 			while(!grid_collision(grid, 0)) grid->y++;
 			grid->y--;
+			if(!grid_collision(grid, 1)) {
 
-			memcpy(bot, grid, sizeof(Grid));
-			stone_to_grid(bot, -1);
+				memcpy(bot, grid, sizeof(Grid));
+				stone_to_grid(bot, -1);
 
-			int m = rate_grid(bot);
-			if(first || m > magic) {
-				magic = m;
-				first = 0;
+				int m = rate_grid(bot);
+				if(first || m > magic) {
+					magic = m;
+					first = 0;
 
-				*mov = (grid->x > save_x) - (grid->x < save_x);
-				*rot = rand_int(2) ? 0 : save_rot != grid->rot;
-				*drop = grid->x - save_x == 0 && save_rot == grid->rot;
+					*mov = (grid->x > save_x) - (grid->x < save_x);
+					*rot = rand_int(2) ? 0 : save_rot != grid->rot;
+					*drop = grid->x - save_x == 0 && save_rot == grid->rot;
+				}
 			}
-
 			grid->y = save_y;
 			grid->x += dir;
 		}
@@ -195,6 +212,8 @@ static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 	if(*rot != grid->input_rot) grid->input_rot = *rot;
 	else *rot = 0;
 }
+
+
 
 static void update_grid_normal(Grid* grid) {
 	int i, x, y;
