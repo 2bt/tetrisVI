@@ -20,7 +20,8 @@ static int serial;
 
 void init_serial() {
 
-	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
+//	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
+	serial = open("/dev/cu.usbmodem5d11", O_RDWR | O_NONBLOCK);
 	assert(serial != -1);
 
 	struct termios config;
@@ -43,7 +44,7 @@ void init_serial() {
 
 void send_cmd(int cmd, const unsigned char* buffer, int len) {
 
-	printf("cmd %c len %d\n", cmd, len);
+	printf("send cmd %c len %d\n", cmd, len);
 
 	static unsigned char magic[4] = { CMD_ESC, 0, CMD_ESC, CMD_END };
 
@@ -58,7 +59,7 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 			tcdrain(serial);
 			assert(write(serial, &buffer[i], 1) == 1);
 		}
-		printf("write %3d at %3d\n", buffer[i], i);
+		printf("    write %3d at %3d\n", buffer[i], i);
 	}
 	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
@@ -253,7 +254,7 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
 	puts("main");
 	init_serial();
 	puts("initilaized");
@@ -281,7 +282,7 @@ int main() {
 
 		// read input
 		while(read(serial, &byte, 1) == 1) {
-			printf("read %3d %c pos %d\n", byte, byte, pos);
+			printf("    read %3d %c pos %d\n", byte, byte, pos);
 			if(!esc && byte == CMD_ESC) {
 				esc = 1;
 				continue;
