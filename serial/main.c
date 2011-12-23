@@ -129,6 +129,22 @@ void prepare_acknowledge() {
 	ack_packet.command = 'a';
 }
 
+Packet nickrequest_packet;
+void prepare_acknowledge() {
+	memset(&nickrequest_packet, 0, sizeof(Packet));
+	ack_packet.len = 32;
+	ack_packet.protocol = 'G';
+	ack_packet.command = 'N';
+}
+
+Packet text_packet;
+void text_acknowledge() {
+	memset(&nickrequest_packet, 0, sizeof(Packet));
+	ack_packet.len = 32;
+	ack_packet.protocol = 'G';
+	ack_packet.command = 'T';
+}
+
 
 typedef struct {
 	int occupied;
