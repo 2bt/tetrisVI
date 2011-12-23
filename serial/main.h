@@ -51,6 +51,14 @@ typedef struct {
 			unsigned char dummy[18];
 		} PACK button;
 
+		struct {
+			unsigned char x;
+			unsigned char y;
+			// bit 1: clear screen
+			unsigned char flags; 
+			unsigned char text[16];
+		} PACK text;
+
 	};
 
 	unsigned char crc[2];
