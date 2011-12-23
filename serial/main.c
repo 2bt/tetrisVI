@@ -160,6 +160,7 @@ typedef struct {
 	int is_ready_for_nick;
 	int needs_text;
 	int is_ready_for_text;
+	long long last_active;
 	unsigned char id[4];
 	unsigned char counter[4];
 	unsigned char nick[18];
@@ -201,6 +202,7 @@ void join(int nr) {
 				players[i].request_nick = 1;
 				players[i].is_ready_for_nick = 0; 
 				players[i].needs_text = 1; 
+				players[i].last_active = get_time(); 
 				players[i].is_ready_for_text = 0; 
 				memcpy(players[i].id, joiners[nr].id, 4);
 				memcpy(players[i].counter, joiners[nr].counter, 4);
@@ -295,6 +297,7 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
 						if(players[i].needs_text)   players[i].is_ready_for_text = 1;
 						if(players[i].request_nick) players[i].is_ready_for_nick = 1;
+						players[i].last_active = get_time();
 						break;
 					}
 				}
@@ -434,6 +437,23 @@ int main(int argc, char *argv[]) {
 				state = STATE_ANNOUNCE_CHAN;
 				break;
 			}
+
+
+			// check for deactive players
+			for(i = 0; i < MAX_PLAYER; i++) {
+				if(players[i].occupied) {
+					if((get_time() - players[i].last_active) > 20000 )
+					{
+						players[i].occupied=0;
+						players[i].id[0]=0;
+						players[i].id[1]=0;
+						players[i].id[2]=0;
+						players[i].id[3]=0;
+					};
+
+				}
+			}
+
 
 			// check whether anybody wans to join
 			for(i = 0; i < MAX_JOINER; i++) {
