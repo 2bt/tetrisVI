@@ -160,6 +160,7 @@ typedef struct {
 	int is_ready_for_nick;
 	int needs_text;
 	int is_ready_for_text;
+	int button_state;
 	long long last_active;
 	unsigned char id[4];
 	unsigned char counter[4];
@@ -298,6 +299,7 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 						if(players[i].needs_text)   players[i].is_ready_for_text = 1;
 						if(players[i].request_nick) players[i].is_ready_for_nick = 1;
 						players[i].last_active = get_time();
+						players[i].button_state = packet->button.state;
 						break;
 					}
 				}
