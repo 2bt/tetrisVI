@@ -42,6 +42,8 @@ typedef struct {
 		} PACK join;
 
 		struct {
+			// 0 = go way
+			// 1 = accepted
 			unsigned char flags;
 			unsigned char dummy[18];
 		} PACK ack;
@@ -50,6 +52,16 @@ typedef struct {
 			unsigned char state;
 			unsigned char dummy[18];
 		} PACK button;
+
+		struct {
+			unsigned char dummy[19];
+		} PACK nickrequest;
+
+		struct {
+			// flags currently unused 
+			unsigned char flags;
+			unsigned char nick[18];
+		} PACK nick;
 
 		struct {
 			unsigned char x;
