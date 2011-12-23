@@ -1,4 +1,3 @@
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -132,17 +131,17 @@ void prepare_acknowledge() {
 Packet nickrequest_packet;
 void prepare_nickrequest() {
 	memset(&nickrequest_packet, 0, sizeof(Packet));
-	ack_packet.len = 32;
-	ack_packet.protocol = 'G';
-	ack_packet.command = 'N';
+	nickrequest_packet.len = 32;
+	nickrequest_packet.protocol = 'G';
+	nickrequest_packet.command = 'N';
 }
 
 Packet text_packet;
 void prepare_text() {
-	memset(&nickrequest_packet, 0, sizeof(Packet));
-	ack_packet.len = 32;
-	ack_packet.protocol = 'G';
-	ack_packet.command = 'T';
+	memset(&text_packet, 0, sizeof(Packet));
+	text_packet.len = 32;
+	text_packet.protocol = 'G';
+	text_packet.command = 'T';
 }
 
 
@@ -154,8 +153,11 @@ typedef struct {
 
 typedef struct {
 	int occupied;
+	int request_nick;
+	int needs_text;
 	unsigned char id[4];
 	unsigned char counter[4];
+	unsigned char nick[18];
 	// also other stuff here ...
 
 } Player;
@@ -185,6 +187,8 @@ void join(int nr) {
 		for(i = 0; i < MAX_PLAYER; i++) {
 			if(!players[i].occupied) {
 				players[i].occupied = 1;
+				players[i].request_nick = 0; //off because does not work anyway (r0ket privacy settings ?)
+				players[i].needs_text = 0; // off because does not work :-(
 				memcpy(players[i].id, joiners[nr].id, 4);
 				memcpy(players[i].counter, joiners[nr].counter, 4);
 
@@ -196,6 +200,31 @@ void join(int nr) {
 	}
 
 	send_packet(&ack_packet);
+}
+
+void nickrequest(int nr) {
+	memcpy(nickrequest_packet.id, players[nr].id, 4);
+
+	send_packet(&nickrequest_packet);
+}
+
+void 
+sendtext(int nr) {
+//	memcpy(text_packet.id, players[nr].id, 4);
+
+	text_packet.id[0]=0; // id:0 display this text for all players
+	text_packet.id[1]=0;
+	text_packet.id[2]=0;
+	text_packet.id[3]=0;
+
+	text_packet.text.x=0;
+	text_packet.text.y=0;
+	text_packet.text.flags=1;
+	
+	memcpy(text_packet.text.text, "tetrisVI", 8);
+	
+	
+	send_packet(&text_packet);
 }
 
 
@@ -279,6 +308,8 @@ int main(int argc, char *argv[]) {
 	puts("initilaized");
 
 	prepare_announce();
+	prepare_text();
+	prepare_nickrequest();
 	prepare_acknowledge();
 
 	unsigned char join_ack_addr[5];
@@ -369,12 +400,32 @@ int main(int argc, char *argv[]) {
 			// check whether anybody wans to join
 			for(i = 0; i < MAX_JOINER; i++) {
 				if(joiners[i].occupied) {
-					printf(">>>>>>>>>>>>>-- %d\n", i);
+					printf(">>>>>SENDACK>>>>>>>>-- %d\n", i);
 					state = STATE_JOIN_ACK_TX_MAC;
 					break;
 				}
 			}
 			if(i != MAX_JOINER) break;
+
+			// check whether anybody should send their nick
+			for(i = 0; i < MAX_PLAYER; i++) {
+				if(players[i].request_nick) {
+					printf(">>>>>REQNICK>>>>>>>>-- %d\n", i);
+					state = STATE_NICKREQUEST_TX_MAC;
+					break;
+				}
+			}
+			if(i != MAX_PLAYER) break;
+
+			// check whether anybody should send get text
+			for(i = 0; i < MAX_PLAYER; i++) {
+				if(players[i].needs_text) {
+					printf(">>>>>TEXT>>>>>>>>-- %d\n", i);
+					state = STATE_TEXT_TX_MAC;
+					break;
+				}
+			}
+			if(i != MAX_PLAYER) break;
 
 			if(0){
 				int p = 0;
@@ -422,6 +473,34 @@ int main(int argc, char *argv[]) {
 			printf(">>>>>>>>>>>>>>> %d\n", i);
 			assert(i < MAX_JOINER);
 			state = STATE_JOIN_ACK_RESTORE_TX_MAC;
+			break;
+
+		case STATE_NICKREQUEST_NICKREQUEST:
+			for(i = 0; i < MAX_PLAYER; i++) {
+				if(players[i].request_nick) {
+					cmd_block = 1;
+					players[i].request_nick=0;
+					nickrequest(i);
+					break;
+				}
+			}
+			printf(">>>>>>>>>>>>>>> %d\n", i);
+			assert(i < MAX_PLAYER);
+			state = STATE_NICKREQUEST_RESTORE_TX_MAC;
+			break;
+
+		case STATE_TEXT_TEXT:
+			for(i = 0; i < MAX_PLAYER; i++) {
+				if(players[i].needs_text) {
+					cmd_block = 1;
+					players[i].needs_text=0;
+					sendtext(i);
+					break;
+				}
+			}
+			printf(">>>>>>>>>>>>>>> %d\n", i);
+			assert(i < MAX_PLAYER);
+			state = STATE_NICKREQUEST_RESTORE_TX_MAC;
 			break;
 
 
