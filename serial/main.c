@@ -59,6 +59,9 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 	}
 	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
+	tcdrain(serial);
+	
+	usleep(80000); //.08s on seb's desktop this was the minimum amount of delay before it began to work ( why ?? ) 
 }
 
 void set_chan(unsigned char chan) {
@@ -124,7 +127,6 @@ void prepare_acknowledge() {
 	ack_packet.len = 32;
 	ack_packet.protocol = 'G';
 	ack_packet.command = 'a';
-//	memcpy(ack_packet.announce.game_mac, game_addr, 5);
 }
 
 
