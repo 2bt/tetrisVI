@@ -398,6 +398,18 @@ int main(int argc, char *argv[]) {
 			state = STATE_JOIN_ACK_ACK;
 			break;
 
+		case STATE_NICKREQUEST_TX_MAC:
+			send_cmd(CMD_TX_MAC, join_ack_addr, 5);
+			cmd_block = 1;
+			state = STATE_NICKREQUEST_NICKREQUEST;
+			break;
+
+		case STATE_TEXT_TX_MAC:
+			send_cmd(CMD_TX_MAC, join_ack_addr, 5);
+			cmd_block = 1;
+			state = STATE_TEXT_TEXT;
+			break;
+
 		case STATE_JOIN_ACK_ACK:
 			for(i = 0; i < MAX_JOINER; i++) {
 				if(joiners[i].occupied) {
@@ -414,6 +426,8 @@ int main(int argc, char *argv[]) {
 
 
 		case STATE_JOIN_ACK_RESTORE_TX_MAC:
+		case STATE_NICKREQUEST_RESTORE_TX_MAC:
+		case STATE_TEXT_RESTORE_TX_MAC:
 			send_cmd(CMD_TX_MAC, announce_addr, 5);
 			cmd_block = 1;
 			state = STATE_IDLE;
