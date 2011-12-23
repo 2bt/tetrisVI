@@ -56,7 +56,7 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 //			tcdrain(serial);
 			assert(write(serial, &buffer[i], 1) == 1);
 		}
-		printf("    write %3d (0x%2x) at %3d\n", buffer[i],buffer[i], i);
+//		printf("    write %3d (0x%2x) at %3d\n", buffer[i],buffer[i], i);
 	}
 //	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
@@ -256,13 +256,13 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 	case CMD_PACKET:
 		puts("<<<< packet >>>>");
 
-		{
+		/*{
 			int i;
 			for(i = 0; i < len; i++) {
 				unsigned char c = ((unsigned char*)packet)[i];
 				printf("> %2x at %2d\n", c, i);
 			}
-		}
+		}*/
 		if(len != packet->len) {
 			puts("len error");
 			return;
@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
 
 		// read input
 		while(read(serial, &byte, 1) == 1) {
-			printf("    read %3d %c pos %d\n", byte, byte, pos);
+			//printf("    read %3d %c pos %d\n", byte, byte, pos);
 			if(!esc && byte == CMD_ESC) {
 				esc = 1;
 				continue;
@@ -477,7 +477,7 @@ int main(int argc, char *argv[]) {
 
 			// check whether anybody should send get text
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if((players[i].is_ready_for_text)&&(players[i].needs_text)) {
+				if((players[i].is_ready_for_text)&&(players[i].needs_text)&&(!players[i].request_nick)) {
 					printf(">>>>>TEXT>>>>>>>>-- %d\n", i);
 					state = STATE_TEXT_TX_MAC;
 					break;
@@ -538,6 +538,7 @@ int main(int argc, char *argv[]) {
 				if((players[i].is_ready_for_nick)&&(players[i].request_nick)) {
 					cmd_block = 1;
 					players[i].is_ready_for_nick=0;
+					players[i].is_ready_for_text=0;
 					nickrequest(i);
 					break;
 				}
@@ -551,6 +552,7 @@ int main(int argc, char *argv[]) {
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if((players[i].is_ready_for_text)&&(players[i].needs_text)) {
 					cmd_block = 1;
+					players[i].is_ready_for_nick = 0;
 					players[i].is_ready_for_text = 0;
 					sendtext(i);
 					break;
