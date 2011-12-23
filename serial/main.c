@@ -254,6 +254,11 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 				
 				break;
 
+			case 'n':
+				printf("nick        %x\n", packet->nick.nick);
+				
+				break;
+
 
 			default:
 				puts("error");
