@@ -55,7 +55,7 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 			tcdrain(serial);
 			assert(write(serial, &buffer[i], 1) == 1);
 		}
-		printf("    write %3d at %3d\n", buffer[i], i);
+		printf("    write %3d (0x%2x) at %3d\n", buffer[i],buffer[i], i);
 	}
 	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
@@ -124,7 +124,7 @@ void prepare_acknowledge() {
 	ack_packet.len = 32;
 	ack_packet.protocol = 'G';
 	ack_packet.command = 'a';
-	memcpy(ack_packet.announce.game_mac, game_addr, 5);
+//	memcpy(ack_packet.announce.game_mac, game_addr, 5);
 }
 
 
@@ -270,8 +270,8 @@ int main(int argc, char *argv[]) {
 	unsigned char cmd;
 	int esc = 0;
 
-	unsigned int time = get_time();
-	unsigned int announce_time = time;
+	unsigned long long time = get_time();
+	unsigned long long announce_time = time;
 	int state = STATE_INIT_PACKETLEN;
 
 	for(;;) {
@@ -303,7 +303,7 @@ int main(int argc, char *argv[]) {
 		}
 
 
-		unsigned int new_time = get_time();
+		unsigned long long new_time = get_time();
 		// TODO: call game loop
 
 

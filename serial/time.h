@@ -1,5 +1,9 @@
-#include <SDL/SDL.h>
+#include <sys/time.h>
+
+struct timeval tv;
 
 // milliseconds
-inline unsigned int get_time() { return SDL_GetTicks(); }
-inline void wait_ms(unsigned int t) { SDL_Delay(t); }
+inline unsigned long long get_time() { 
+	gettimeofday(&tv,NULL);
+	return (unsigned long long)((tv.tv_usec/1000)+(tv.tv_sec*1000)); 
+}
