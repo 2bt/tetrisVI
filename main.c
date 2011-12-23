@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
@@ -66,7 +67,7 @@ void pixel(int x, int y, unsigned char color) {
 	assert(y < DISPLAY_HEIGHT);
 	assert(color < 16);
 	if(display[y][x] != color) {
-		rerender=1;
+		rerender = 1;
 		display[y][x] = color;
 	}
 }
