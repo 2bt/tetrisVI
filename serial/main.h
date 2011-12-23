@@ -1,3 +1,7 @@
+#ifndef MAIN_H_
+#define MAIN_H_
+
+
 
 #define PACK __attribute__((packed))
 
@@ -96,3 +100,29 @@ enum {
 	STATE_TEXT_TEXT,
 	STATE_TEXT_RESTORE_TX_MAC,
 };
+
+
+
+
+enum {
+    DISPLAY_WIDTH = 72,
+    DISPLAY_HEIGHT = 32
+};
+
+enum {
+    BUTTON_A,
+    BUTTON_B,
+    BUTTON_LEFT,
+    BUTTON_RIGHT,
+    BUTTON_DOWN,
+    BUTTON_UP,
+    BUTTON_START,
+    BUTTON_SELECT,
+};
+
+int button_down(unsigned int nr, unsigned int button);
+unsigned int rand_int(unsigned int limit);
+void pixel(int x, int y, unsigned char color);
+
+
+#endif

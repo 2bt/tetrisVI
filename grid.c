@@ -190,16 +190,16 @@ static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
 
 static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 
-	if(grid->nr == 5) {
+//	if(grid->nr == 5) {
 		*mov = button_down(grid->nr, BUTTON_RIGHT)
 				- button_down(grid->nr, BUTTON_LEFT);
 		*rot = button_down(grid->nr, BUTTON_A)
 				- button_down(grid->nr, BUTTON_B);
 		*drop = button_down(grid->nr, BUTTON_DOWN);
-	}
+/*	}
 	else {
 		grid_bot(grid, mov, rot, drop);
-	}
+	}*/
 
 	if(*mov != grid->input_mov) grid->input_rep = 0;
 	grid->input_mov = *mov;

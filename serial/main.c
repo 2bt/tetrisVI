@@ -6,14 +6,50 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <SDL/SDL.h>
 
 #include "time.h"
 #include "main.h"
 #include "config.h"
+#include "tetris.h"
+#include "sdl_draw/SDL_draw.h"
 
 static int serial;
 
-int xyz = 49;
+static int              rerender = 1;
+
+static unsigned char    display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
+
+
+typedef struct {
+	int occupied;
+	unsigned char id[4];
+	unsigned char counter[4];
+} Joiner;
+
+typedef struct {
+	int occupied;
+	int request_nick;
+	int is_ready_for_nick;
+	int needs_text;
+	int is_ready_for_text;
+	int button_state;
+	long long last_active;
+	unsigned char id[4];
+	unsigned char counter[4];
+	unsigned char nick[18];
+	// also other stuff here ...
+
+} Player;
+
+enum {
+	MAX_JOINER = 32,
+	MAX_PLAYER = 6,
+};
+
+Joiner joiners[MAX_JOINER];
+Player players[MAX_PLAYER];
+
 
 void init_serial() {
 
@@ -35,6 +71,14 @@ void init_serial() {
 	cfsetispeed(&config, B115200);
 	config.c_cflag = CS8 | CREAD | CLOCAL;
 	tcsetattr(serial, TCSANOW, &config);
+
+}
+
+int button_down(unsigned int nr, unsigned int button) {
+
+
+//	printf("checkbut %i %i %i\n",button,(((players[nr].button_state)&(1<<button))==(1<<button)),players[nr].button_state);
+	return (((players[nr].button_state)&(1<<button))==(1<<button));
 
 }
 
@@ -148,34 +192,7 @@ void prepare_text() {
 }
 
 
-typedef struct {
-	int occupied;
-	unsigned char id[4];
-	unsigned char counter[4];
-} Joiner;
 
-typedef struct {
-	int occupied;
-	int request_nick;
-	int is_ready_for_nick;
-	int needs_text;
-	int is_ready_for_text;
-	int button_state;
-	long long last_active;
-	unsigned char id[4];
-	unsigned char counter[4];
-	unsigned char nick[18];
-	// also other stuff here ...
-
-} Player;
-
-enum {
-	MAX_JOINER = 32,
-	MAX_PLAYER = 6,
-};
-
-Joiner joiners[MAX_JOINER];
-Player players[MAX_PLAYER];
 
 void join(int nr) {
 	int i;
@@ -344,8 +361,34 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 	}
 }
 
-
 int main(int argc, char *argv[]) {
+    srand(SDL_GetTicks());
+    tetris_load();
+
+    SDL_Surface* screen = SDL_SetVideoMode(
+        DISPLAY_WIDTH * ZOOM,
+        DISPLAY_HEIGHT * ZOOM,
+        32, SDL_SWSURFACE | SDL_DOUBLEBUF);
+
+    const unsigned int COLORS[] = {
+        SDL_MapRGB(screen->format, 0x00,0x10,0x00),
+        SDL_MapRGB(screen->format, 0x00,0x20,0x00),
+        SDL_MapRGB(screen->format, 0x00,0x30,0x00),
+        SDL_MapRGB(screen->format, 0x00,0x40,0x00),
+        SDL_MapRGB(screen->format, 0x00,0x50,0x00),
+        SDL_MapRGB(screen->format, 0x00,0x60,0x00),
+        SDL_MapRGB(screen->format, 0x00,0x70,0x00),
+        SDL_MapRGB(screen->format, 0x00,0x80,0x00),
+        SDL_MapRGB(screen->format, 0x00,0x90,0x00),
+        SDL_MapRGB(screen->format, 0x00,0xa0,0x00),
+        SDL_MapRGB(screen->format, 0x00,0xb0,0x00),
+        SDL_MapRGB(screen->format, 0x00,0xc0,0x00),
+        SDL_MapRGB(screen->format, 0x00,0xd0,0x00),
+        SDL_MapRGB(screen->format, 0x00,0xe0,0x00),
+        SDL_MapRGB(screen->format, 0x00,0xf0,0x00),
+        SDL_MapRGB(screen->format, 0x00,0xff,0x00)
+    };
+
 	puts("main");
 	init_serial();
 	puts("initilaized");
@@ -369,9 +412,39 @@ int main(int argc, char *argv[]) {
 
 	unsigned long long time = get_time();
 	unsigned long long announce_time = time;
+	unsigned long long tetris_time = time;
 	int state = STATE_INIT_PACKETLEN;
 
-	for(;;) {
+
+add_player();add_player();add_player();add_player();add_player();add_player();
+    int running = 1;
+    while(running) {
+
+        SDL_Event ev;
+        while(SDL_PollEvent(&ev)) {
+
+            switch(ev.type) {
+            case SDL_QUIT:
+                running = 0;
+                break;
+            case SDL_KEYUP:
+            case SDL_KEYDOWN:
+
+                switch(ev.key.keysym.sym) {
+                case SDLK_ESCAPE:
+                    running = 0;
+                    break;
+				default:break;
+				}
+			}
+		}
+
+
+
+
+
+
+
 
 		// read input
 		while(read(serial, &byte, 1) == 1) {
@@ -404,6 +477,26 @@ int main(int argc, char *argv[]) {
 		// TODO: call game loop
 
 
+			if(new_time - tetris_time > 20) {
+				tetris_time = new_time;
+
+
+        tetris_update();
+
+        if(rerender) {
+            rerender = 0;
+			int x,y;
+            for(x = 0; x < DISPLAY_WIDTH; x++)
+                for(y = 0; y < DISPLAY_HEIGHT; y++)
+                    Draw_FillCircle(screen, ZOOM * x + ZOOM / 2,
+                        ZOOM * y + ZOOM / 2, ZOOM * 0.45, COLORS[display[y][x]]);
+            SDL_Flip(screen);
+        }
+
+
+			}
+
+		
 		if(cmd_block) continue;
 		switch(state) {
 		case STATE_INIT_PACKETLEN:
@@ -592,7 +685,37 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	return 0;
+    SDL_Quit();
+    return 0;
 }
 
 
+// found it in the internet...
+static unsigned int my_rand(void) {
+    static unsigned int z1 = 12345, z2 = 12345, z3 = 12345, z4 = 12345;
+    unsigned int b;
+    b  = ((z1 << 6) ^ z1) >> 13;
+    z1 = ((z1 & 4294967294U) << 18) ^ b;
+    b  = ((z2 << 2) ^ z2) >> 27;
+    z2 = ((z2 & 4294967288U) << 2) ^ b;
+    b  = ((z3 << 13) ^ z3) >> 21;
+    z3 = ((z3 & 4294967280U) << 7) ^ b;
+    b  = ((z4 << 3) ^ z4) >> 12;
+    z4 = ((z4 & 4294967168U) << 13) ^ b;
+    return (z1 ^ z2 ^ z3 ^ z4);
+}
+
+unsigned int rand_int(unsigned int limit) {
+    return my_rand() % limit;
+}
+
+
+void pixel(int x, int y, unsigned char color) {
+    assert(x < DISPLAY_WIDTH);
+    assert(y < DISPLAY_HEIGHT);
+    assert(color < 16);
+    if(display[y][x] != color) {
+        rerender = 1;
+        display[y][x] = color;
+    }
+}
