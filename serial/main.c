@@ -130,7 +130,7 @@ void prepare_acknowledge() {
 }
 
 Packet nickrequest_packet;
-void prepare_acknowledge() {
+void prepare_nickrequest() {
 	memset(&nickrequest_packet, 0, sizeof(Packet));
 	ack_packet.len = 32;
 	ack_packet.protocol = 'G';
@@ -138,7 +138,7 @@ void prepare_acknowledge() {
 }
 
 Packet text_packet;
-void text_acknowledge() {
+void prepare_text() {
 	memset(&nickrequest_packet, 0, sizeof(Packet));
 	ack_packet.len = 32;
 	ack_packet.protocol = 'G';
@@ -255,7 +255,7 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 				break;
 
 			case 'n':
-				printf("nick        %x\n", packet->nick.nick);
+				printf("nick        %s\n", packet->nick.nick);
 				
 				break;
 
