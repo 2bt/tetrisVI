@@ -10,11 +10,7 @@
 
 #include "time.h"
 #include "main.h"
-
-const unsigned char announce_addr[5] = { 'R', 'E', 'M', '0', 'T' };
-const unsigned char game_addr[5] = { 0x55, 0xC3, 0xD2, 0x28, 0xC3 };
-const unsigned char game_id[2] = { 0xC3, 0xD2 };
-
+#include "config.h"
 
 static int serial;
 
