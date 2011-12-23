@@ -13,6 +13,8 @@
 
 static int serial;
 
+int xyz = 49;
+
 void init_serial() {
 
 //	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
@@ -44,23 +46,23 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 	static unsigned char magic[4] = { CMD_ESC, 0, CMD_ESC, CMD_END };
 
 	magic[1] = cmd;
-	tcdrain(serial);
+//	tcdrain(serial);
 	assert(write(serial, magic, 2) == 2);
 	int i;
 	for(i = 0; i < len; i++) {
-		tcdrain(serial);
+//		tcdrain(serial);
 		assert(write(serial, &buffer[i], 1) == 1);
 		if(buffer[i] == 92) {
-			tcdrain(serial);
+//			tcdrain(serial);
 			assert(write(serial, &buffer[i], 1) == 1);
 		}
 		printf("    write %3d (0x%2x) at %3d\n", buffer[i],buffer[i], i);
 	}
-	tcdrain(serial);
+//	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
-	tcdrain(serial);
+//	tcdrain(serial);
 	
-	usleep(80000); //.08s on seb's desktop this was the minimum amount of delay before it began to work ( why ?? ) 
+//	usleep(80000); //.08s on seb's desktop this was the minimum amount of delay before it began to work ( why ?? ) 
 }
 
 void set_chan(unsigned char chan) {
@@ -106,7 +108,7 @@ void prepare_announce() {
 	announce_packet.announce.game_chan = GAME_CHANNEL;
 	announce_packet.announce.game_id[0] = game_id[0];
 	announce_packet.announce.game_id[1] = game_id[1];
-	announce_packet.announce.game_flags = 0;
+	announce_packet.announce.game_flags = 4;
 
 	announce_packet.announce.interval = 5;
 	announce_packet.announce.jitter = 16;
@@ -142,6 +144,7 @@ void prepare_text() {
 	text_packet.len = 32;
 	text_packet.protocol = 'G';
 	text_packet.command = 'T';
+	text_packet.counter[4] = 48;
 }
 
 
@@ -154,8 +157,9 @@ typedef struct {
 typedef struct {
 	int occupied;
 	int request_nick;
+	int is_ready_for_nick;
 	int needs_text;
-	long long text_timeout;
+	int is_ready_for_text;
 	unsigned char id[4];
 	unsigned char counter[4];
 	unsigned char nick[18];
@@ -177,20 +181,27 @@ void join(int nr) {
 	memcpy(ack_packet.counter, joiners[nr].counter, 4);
 
 	for(i = 0; i < MAX_PLAYER; i++) {
+		printf("player %i %i%i%i%i\n",i,players[i].id[0],players[i].id[1],players[i].id[2],players[i].id[3]);
 		if(players[i].occupied) {
 			if(memcmp(players[i].id, joiners[nr].id, 4) == 0)
-			ack_packet.ack.flags = 1;
-			break;
+			{
+				ack_packet.ack.flags = 1;
+				printf("player %i again %i%i%i%i\n",i,joiners[nr].id[0],joiners[nr].id[1],joiners[nr].id[2],joiners[nr].id[3]);
+				break;
+			}
 		}
 	}
 	if(i == MAX_PLAYER)	{
 
 		for(i = 0; i < MAX_PLAYER; i++) {
+			printf("player %i %i%i%i%i\n",i,players[i].id[0],players[i].id[1],players[i].id[2],players[i].id[3]);
 			if(!players[i].occupied) {
+				printf("player %i added %i%i%i%i\n",i,joiners[nr].id[0],joiners[nr].id[1],joiners[nr].id[2],joiners[nr].id[3]);
 				players[i].occupied = 1;
-				players[i].request_nick = 0; //off because does not work anyway (r0ket privacy settings ?)
+				players[i].request_nick = 1;
+				players[i].is_ready_for_nick = 0; 
 				players[i].needs_text = 1; 
-				players[i].text_timeout = get_time()+2000; 
+				players[i].is_ready_for_text = 0; 
 				memcpy(players[i].id, joiners[nr].id, 4);
 				memcpy(players[i].counter, joiners[nr].counter, 4);
 
@@ -212,18 +223,16 @@ void nickrequest(int nr) {
 
 void 
 sendtext(int nr) {
-//	memcpy(text_packet.id, players[nr].id, 4);
-
-	text_packet.id[0]=0; // id:0 display this text for all players
-	text_packet.id[1]=0;
-	text_packet.id[2]=0;
-	text_packet.id[3]=0;
+	memcpy(text_packet.id, players[nr].id, 4);
+	unsigned char* c = (unsigned char*)&text_packet.counter;
+	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {}
 
 	text_packet.text.x=1;
 	text_packet.text.y=1;
 	text_packet.text.flags=1;
 	
-	memcpy(text_packet.text.text, "Welcome ", 8);
+	memcpy(text_packet.text.text, "Player ", 7);
+	text_packet.text.text[7] = 49 + nr;
 	
 	send_packet(&text_packet);
 }
@@ -281,11 +290,39 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 
 			case 'B':
 				printf("button      %x\n", packet->button.state);
+
+				for(i = 0; i < MAX_PLAYER; i++) {
+					if(!memcmp(players[i].id, packet->id, 4)) {
+						if(players[i].needs_text)   players[i].is_ready_for_text = 1;
+						if(players[i].request_nick) players[i].is_ready_for_nick = 1;
+						break;
+					}
+				}
 				
 				break;
 
 			case 'n':
 				printf("nick        %s\n", packet->nick.nick);
+
+				for(i = 0; i < MAX_PLAYER; i++) {
+					if(!memcmp(players[i].id, packet->id, 4)) {
+						memcpy(players[i].nick, packet->nick.nick, 18);
+						players[i].request_nick = 0;
+						break;
+					}
+				}
+				
+				break;
+
+			case 'a':
+				printf("text ack        \n");
+
+				for(i = 0; i < MAX_PLAYER; i++) {
+					if(!memcmp(players[i].id, packet->id, 4)) {
+						players[i].needs_text = 0; 
+						break;
+					}
+				}
 				
 				break;
 
@@ -411,27 +448,19 @@ int main(int argc, char *argv[]) {
 
 			// check whether anybody should send their nick
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(players[i].request_nick) {
-					printf(">>>>>REQNICK>>>>>>>>-- %d\n", i);
+				if((players[i].is_ready_for_nick)&&(players[i].request_nick)) {
 					state = STATE_NICKREQUEST_TX_MAC;
 					break;
 				}
 			}
-			if(i != MAX_PLAYER)
-			{
-				printf(">>>>>NICK BREAK>>>>>>>>-- \n");
-				 break;
-			}
+			if(i != MAX_PLAYER) break;
 
 			// check whether anybody should send get text
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(players[i].needs_text) {
-					if(players[i].text_timeout < new_time)
-					{
+				if((players[i].is_ready_for_text)&&(players[i].needs_text)) {
 					printf(">>>>>TEXT>>>>>>>>-- %d\n", i);
 					state = STATE_TEXT_TX_MAC;
 					break;
-					}
 				}
 			}
 			if(i != MAX_PLAYER) break;
@@ -486,9 +515,9 @@ int main(int argc, char *argv[]) {
 
 		case STATE_NICKREQUEST_NICKREQUEST:
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(players[i].request_nick) {
+				if((players[i].is_ready_for_nick)&&(players[i].request_nick)) {
 					cmd_block = 1;
-					players[i].request_nick=0;
+					players[i].is_ready_for_nick=0;
 					nickrequest(i);
 					break;
 				}
@@ -500,13 +529,11 @@ int main(int argc, char *argv[]) {
 
 		case STATE_TEXT_TEXT:
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(players[i].needs_text) {
-					if(players[i].text_timeout < new_time) {
+				if((players[i].is_ready_for_text)&&(players[i].needs_text)) {
 					cmd_block = 1;
-					players[i].text_timeout=new_time + 2000;
+					players[i].is_ready_for_text = 0;
 					sendtext(i);
 					break;
-					}
 				}
 			}
 			printf(">>>>TXT DONE>>>>>>>>>>> %d\n", i);
