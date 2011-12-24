@@ -10,8 +10,8 @@
 
 #include "time.h"
 #include "main.h"
+#include "grid.h"
 #include "config.h"
-#include "tetris.h"
 #include "sdl_draw/SDL_draw.h"
 
 static int serial;
@@ -19,6 +19,9 @@ static int serial;
 static int              rerender = 1;
 
 static unsigned char    display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
+
+static Grid grids[MAX_PLAYERS];
+
 
 
 typedef struct {
@@ -77,10 +80,11 @@ void init_serial() {
 }
 
 int button_down(unsigned int nr, unsigned int button) {
-
-
-//	printf("checkbut %i %i %i\n",button,(((players[nr].button_state)&(1<<button))==(1<<button)),players[nr].button_state);
 	return (((players[nr].button_state)&(1<<button))==(1<<button));
+}
+int is_occupied(unsigned int nr) {
+
+	return players[nr].occupied;
 
 }
 
@@ -108,13 +112,11 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 //			tcdrain(serial);
 			assert(write(serial, &buffer[i], 1) == 1);
 		}
-//		printf("    write %3d (0x%2x) at %3d\n", buffer[i],buffer[i], i);
 	}
 //	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
 //	tcdrain(serial);
 	
-//	usleep(80000); //.08s on seb's desktop this was the minimum amount of delay before it began to work ( why ?? ) 
 }
 
 void set_chan(unsigned char chan) {
@@ -162,7 +164,7 @@ void prepare_announce() {
 	announce_packet.announce.game_id[1] = game_id[1];
 	announce_packet.announce.game_flags = 4;
 
-	announce_packet.announce.interval = 3;
+	announce_packet.announce.interval = 1;
 	announce_packet.announce.jitter = 6;
 	memcpy(announce_packet.announce.game_name, "tetrisVI", 8);
 }
@@ -199,21 +201,17 @@ void prepare_text() {
 	text_packet.counter[4] = 48;
 }
 
-
-
-
 void join(int nr) {
 	int i;
 	memcpy(ack_packet.id, joiners[nr].id, 4);
 	memcpy(ack_packet.counter, joiners[nr].counter, 4);
 
 	for(i = 0; i < MAX_PLAYER; i++) {
-		printf("player %i %i%i%i%i\n",i,players[i].id[0],players[i].id[1],players[i].id[2],players[i].id[3]);
 		if(players[i].occupied) {
 			if(memcmp(players[i].id, joiners[nr].id, 4) == 0)
 			{
 				ack_packet.ack.flags = 1;
-				printf("player %i again %i%i%i%i\n",i,joiners[nr].id[0],joiners[nr].id[1],joiners[nr].id[2],joiners[nr].id[3]);
+				printf("player %i again\n",i);
 				break;
 			}
 		}
@@ -221,9 +219,8 @@ void join(int nr) {
 	if(i == MAX_PLAYER)	{
 
 		for(i = 0; i < MAX_PLAYER; i++) {
-			printf("player %i %i%i%i%i\n",i,players[i].id[0],players[i].id[1],players[i].id[2],players[i].id[3]);
 			if(!players[i].occupied) {
-				printf("player %i added %i%i%i%i\n",i,joiners[nr].id[0],joiners[nr].id[1],joiners[nr].id[2],joiners[nr].id[3]);
+				printf("player %i added\n",i);
 				players[i].occupied = 1;
 				players[i].request_nick = 1;
 				players[i].is_ready_for_nick = 0; 
@@ -235,6 +232,10 @@ void join(int nr) {
 				memcpy(players[i].counter, joiners[nr].counter, 4);
 
 				ack_packet.ack.flags = 1;
+
+		    	init_grid(&grids[i], i);
+//    			activate_grid(&grids[i]);
+
 				break;
 			}
 		}
@@ -284,25 +285,16 @@ int cmd_block = 0;
 
 void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 
-	printf("received command %c len %d\n", cmd, len);
 	int i;
 
 	switch(cmd) {
 	case CMD_OK:
 		cmd_block = 0;
-		puts("<<<< ok >>>>");
 		return;
 
 	case CMD_PACKET:
-		puts("<<<< packet >>>>");
+		printf("received packet %c\n", packet->command);
 
-		/*{
-			int i;
-			for(i = 0; i < len; i++) {
-				unsigned char c = ((unsigned char*)packet)[i];
-				printf("> %2x at %2d\n", c, i);
-			}
-		}*/
 		if(len != packet->len) {
 			puts("len error");
 			return;
@@ -311,8 +303,6 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 
 		switch(packet->command) {
 			case 'J':
-				puts("join");
-
 				// ignore packets with wrong game id
 				if(	packet->join.game_id[0] != game_id[0] ||
 					packet->join.game_id[1] != game_id[1])
@@ -331,14 +321,25 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 
 
 			case 'B':
-				printf("button      %x\n", packet->button.state);
-
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
 						if((players[i].needs_text)||(players[i].needs_lines))   players[i].is_ready_for_text = 1;
 						if(players[i].request_nick) players[i].is_ready_for_nick = 1;
 						players[i].last_active = get_time();
 						players[i].button_state = packet->button.state;
+						
+						
+						//paket indicator
+						if(display[10][1+(i*12)]==0)
+						{
+							display[10][1+(i*12)]=15;
+						}
+						else
+						{
+							display[10][1+(i*12)]=0;
+						}
+						rerender=1;
+						
 						break;
 					}
 				}
@@ -346,8 +347,6 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 				break;
 
 			case 'n':
-				printf("nick        %s\n", packet->nick.nick);
-
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
 						memcpy(players[i].nick, packet->nick.nick, 18);
@@ -359,8 +358,6 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 				break;
 
 			case 'a':
-				printf("text ack        \n");
-
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
 						players[i].needs_text = 0; 
@@ -370,7 +367,6 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 				}
 				
 				break;
-
 
 			default:
 				puts("error");
@@ -386,7 +382,7 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 
 int main(int argc, char *argv[]) {
     srand(SDL_GetTicks());
-    tetris_load();
+    
 
     SDL_Surface* screen = SDL_SetVideoMode(
         DISPLAY_WIDTH * ZOOM,
@@ -425,7 +421,6 @@ int main(int argc, char *argv[]) {
 	memcpy(join_ack_addr, game_addr, 5);
 	join_ack_addr[4]++;
 
-
 	int i;
 	unsigned char data[256];
 	unsigned char pos = 0;
@@ -438,8 +433,12 @@ int main(int argc, char *argv[]) {
 	unsigned long long tetris_time = time;
 	int state = STATE_INIT_PACKETLEN;
 
-
-add_player();add_player();add_player();add_player();add_player();add_player();
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+    	init_grid(&grids[i], i);
+//    	activate_grid(&grids[i]);
+    }
+    
     int running = 1;
     while(running) {
 
@@ -461,13 +460,6 @@ add_player();add_player();add_player();add_player();add_player();add_player();
 				}
 			}
 		}
-
-
-
-
-
-
-
 
 		// read input
 		while(read(serial, &byte, 1) == 1) {
@@ -495,32 +487,30 @@ add_player();add_player();add_player();add_player();add_player();add_player();
 			data[pos++] = byte;
 		}
 
-
 		unsigned long long new_time = get_time();
-		// TODO: call game loop
 
+		if(new_time - tetris_time > 20) {
 
-			if(new_time - tetris_time > 20) {
-				tetris_time = new_time;
+			tetris_time = new_time;
 
-
-        tetris_update();
-
-        if(rerender) {
-            rerender = 0;
-			int x,y;
-            for(x = 0; x < DISPLAY_WIDTH; x++)
-                for(y = 0; y < DISPLAY_HEIGHT; y++)
-                    Draw_FillCircle(screen, ZOOM * x + ZOOM / 2,
-                        ZOOM * y + ZOOM / 2, ZOOM * 0.45, COLORS[display[y][x]]);
-            SDL_Flip(screen);
-        }
-
-
+			for(i = 0; i < MAX_PLAYERS; i++) {
+				update_grid(&grids[i]);
+				draw_grid(&grids[i]);
 			}
 
-		
+			if(rerender) {
+				rerender = 0;
+				int x,y;
+				for(x = 0; x < DISPLAY_WIDTH; x++)
+					for(y = 0; y < DISPLAY_HEIGHT; y++)
+						Draw_FillCircle(screen, ZOOM * x + ZOOM / 2,
+							ZOOM * y + ZOOM / 2, ZOOM * 0.45, COLORS[display[y][x]]);
+				SDL_Flip(screen);
+			}
+		}
+
 		if(cmd_block) continue;
+
 		switch(state) {
 		case STATE_INIT_PACKETLEN:
 			set_packetlen(32);
@@ -560,13 +550,17 @@ add_player();add_player();add_player();add_player();add_player();add_player();
 			// check for deactive players
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if(players[i].occupied) {
-					if((get_time() - players[i].last_active) > 20000 )
+					if((get_time() - players[i].last_active) > 10000 )
 					{
 						players[i].occupied=0;
 						players[i].id[0]=0;
 						players[i].id[1]=0;
 						players[i].id[2]=0;
 						players[i].id[3]=0;
+
+				    	init_grid(&grids[i], i);
+//    					activate_grid(&grids[i]);
+						
 					};
 
 				}
@@ -576,13 +570,11 @@ add_player();add_player();add_player();add_player();add_player();add_player();
 			// check whether anybody wans to join
 			for(i = 0; i < MAX_JOINER; i++) {
 				if(joiners[i].occupied) {
-					printf(">>>>>SENDACK>>>>>>>>-- %d\n", i);
 					state = STATE_JOIN_ACK_TX_MAC;
 					break;
 				}
 			}
 			if(i != MAX_JOINER) break;
-
 
 			// check whether anybody should send their nick
 			for(i = 0; i < MAX_PLAYER; i++) {
@@ -596,26 +588,12 @@ add_player();add_player();add_player();add_player();add_player();add_player();
 			// check whether anybody should send get text
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if((players[i].is_ready_for_text)&&((players[i].needs_text)||(players[i].needs_lines))&&(!players[i].request_nick)) {
-					printf(">>>>>TEXT>>>>>>>>-- %d\n", i);
 					state = STATE_TEXT_TX_MAC;
 					break;
 				}
 			}
 			if(i != MAX_PLAYER) break;
 
-			if(0){
-				int p = 0;
-				int j = 0;
-				for(i = 0; i < MAX_JOINER; i++) {
-					j += joiners[i].occupied;
-				}
-
-				for(i = 0; i < MAX_PLAYER; i++) {
-					p += players[i].occupied;
-				}
-
-				printf("players %d joiners %d\n", p, j);
-			}
 			break;
 
 
@@ -646,7 +624,6 @@ add_player();add_player();add_player();add_player();add_player();add_player();
 					break;
 				}
 			}
-			printf(">>>>>>JOIN DONE>>>>>>>>> %d\n", i);
 			assert(i < MAX_JOINER);
 			state = STATE_JOIN_ACK_RESTORE_TX_MAC;
 			break;
@@ -661,7 +638,6 @@ add_player();add_player();add_player();add_player();add_player();add_player();
 					break;
 				}
 			}
-			printf(">>>>>NR DONE>>>>>>>>>> %d\n", i);
 			assert(i < MAX_PLAYER);
 			state = STATE_NICKREQUEST_RESTORE_TX_MAC;
 			break;
@@ -676,7 +652,6 @@ add_player();add_player();add_player();add_player();add_player();add_player();
 					break;
 				}
 			}
-			printf(">>>>TXT DONE>>>>>>>>>>> %d\n", i);
 			assert(i < MAX_PLAYER);
 			state = STATE_NICKREQUEST_RESTORE_TX_MAC;
 			break;
