@@ -337,6 +337,8 @@ static void update_grid_clearlines(Grid* grid) {
 			grid->highlight[y] = 0;
 
 			grid->lines++;
+			push_lines(grid->nr, grid->lines);
+
 			grid->level_progress++;
 			if(grid->level_progress == 10) {
 				grid->level_progress = 0;
