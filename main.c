@@ -43,6 +43,12 @@ int button_down(unsigned int nr, unsigned int button) {
 	}
 	return 0;
 }
+int is_occupied(unsigned int nr) {
+	return 0;
+}
+void push_lines(unsigned int nr, unsigned int lines)
+{
+}
 
 
 static int map_key(unsigned int sdl_key) {
