@@ -6,17 +6,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <SDL/SDL.h>
 
 #include "time.h"
 #include "main.h"
 #include "grid.h"
 #include "config.h"
-#include "sdl_draw/SDL_draw.h"
 
-static int serial;
-
-static int              rerender = 1;
+static int serial_bridge;
+static int serial_g3d2;
 
 static unsigned char    display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 
@@ -58,13 +55,13 @@ Player players[MAX_PLAYER];
 
 void init_serial() {
 
-//	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
-	serial = open("/dev/cu.usbmodem5d11", O_RDWR | O_NONBLOCK);
-	assert(serial != -1);
+	serial_bridge = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
+//	serial_bridge = open("/dev/cu.usbmodem5d11", O_RDWR | O_NONBLOCK);
+	assert(serial_bridge != -1);
 
 	struct termios config;
 	memset(&config, 0, sizeof(config));
-	tcgetattr(serial, &config);
+	tcgetattr(serial_bridge, &config);
 
 	config.c_iflag = 0;
 	config.c_oflag = 0;
@@ -75,7 +72,26 @@ void init_serial() {
 	cfsetospeed(&config, B115200);
 	cfsetispeed(&config, B115200);
 	config.c_cflag = CS8 | CREAD | CLOCAL;
-	tcsetattr(serial, TCSANOW, &config);
+	tcsetattr(serial_bridge, TCSANOW, &config);
+
+
+	serial_g3d2 = open("/dev/ttyUSB0", O_RDWR | O_NONBLOCK);
+	assert(serial_g3d2 != -1);
+
+	struct termios config2;
+	memset(&config2, 0, sizeof(config));
+	tcgetattr(serial_g3d2, &config2);
+
+	config2.c_iflag = 0;
+	config2.c_oflag = 0;
+	config2.c_lflag = 0;
+	config2.c_cc[VMIN] = 1;
+	config2.c_cc[VTIME] = 5;
+
+	cfsetospeed(&config2, B500000);
+	cfsetispeed(&config2, B500000);
+	config2.c_cflag = CS8 | CREAD | CLOCAL;
+	tcsetattr(serial_g3d2, TCSANOW, &config2);
 
 }
 
@@ -103,18 +119,18 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 
 	magic[1] = cmd;
 //	tcdrain(serial);
-	assert(write(serial, magic, 2) == 2);
+	assert(write(serial_bridge, magic, 2) == 2);
 	int i;
 	for(i = 0; i < len; i++) {
 //		tcdrain(serial);
-		assert(write(serial, &buffer[i], 1) == 1);
+		assert(write(serial_bridge, &buffer[i], 1) == 1);
 		if(buffer[i] == 92) {
 //			tcdrain(serial);
-			assert(write(serial, &buffer[i], 1) == 1);
+			assert(write(serial_bridge, &buffer[i], 1) == 1);
 		}
 	}
 //	tcdrain(serial);
-	assert(write(serial, magic + 2, 2) == 2);
+	assert(write(serial_bridge, magic + 2, 2) == 2);
 //	tcdrain(serial);
 	
 }
@@ -337,7 +353,6 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 						{
 							display[10][1+(i*12)]=0;
 						}
-						rerender=1;
 						
 						break;
 					}
@@ -380,32 +395,6 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 }
 
 int main(int argc, char *argv[]) {
-    srand(SDL_GetTicks());
-    
-
-    SDL_Surface* screen = SDL_SetVideoMode(
-        DISPLAY_WIDTH * ZOOM,
-        DISPLAY_HEIGHT * ZOOM,
-        32, SDL_SWSURFACE | SDL_DOUBLEBUF);
-
-    const unsigned int COLORS[] = {
-        SDL_MapRGB(screen->format, 0x00,0x10,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x20,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x30,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x40,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x50,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x60,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x70,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x80,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x90,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xa0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xb0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xc0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xd0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xe0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xf0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xff,0x00)
-    };
 
 	puts("main");
 	init_serial();
@@ -441,27 +430,8 @@ int main(int argc, char *argv[]) {
     int running = 1;
     while(running) {
 
-        SDL_Event ev;
-        while(SDL_PollEvent(&ev)) {
-
-            switch(ev.type) {
-            case SDL_QUIT:
-                running = 0;
-                break;
-            case SDL_KEYUP:
-            case SDL_KEYDOWN:
-
-                switch(ev.key.keysym.sym) {
-                case SDLK_ESCAPE:
-                    running = 0;
-                    break;
-				default:break;
-				}
-			}
-		}
-
 		// read input
-		while(read(serial, &byte, 1) == 1) {
+		while(read(serial_bridge, &byte, 1) == 1) {
 			//printf("    read %3d %c pos %d\n", byte, byte, pos);
 			if(!esc && byte == CMD_ESC) {
 				esc = 1;
@@ -497,15 +467,6 @@ int main(int argc, char *argv[]) {
 				draw_grid(&grids[i]);
 			}
 
-			if(rerender) {
-				rerender = 0;
-				int x,y;
-				for(x = 0; x < DISPLAY_WIDTH; x++)
-					for(y = 0; y < DISPLAY_HEIGHT; y++)
-						Draw_FillCircle(screen, ZOOM * x + ZOOM / 2,
-							ZOOM * y + ZOOM / 2, ZOOM * 0.45, COLORS[display[y][x]]);
-				SDL_Flip(screen);
-			}
 		}
 
 		if(cmd_block) continue;
@@ -682,7 +643,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-    SDL_Quit();
     return 0;
 }
 
@@ -712,7 +672,27 @@ void pixel(int x, int y, unsigned char color) {
     assert(y < DISPLAY_HEIGHT);
     assert(color < 16);
     if(display[y][x] != color) {
-        rerender = 1;
         display[y][x] = color;
+        
+        
+			y = 31-y;
+
+			unsigned char c=104;
+			write(serial_g3d2,&c,1);
+            int x2 = x % 8;
+            int y2 = y % 8;
+            int mod = (x-x2)/8 + ((y-y2)/8*9);
+
+            c=mod;
+            write(serial_g3d2,&c,1);
+            c=x2;
+            write(serial_g3d2,&c,1);
+            c=y2;
+            write(serial_g3d2,&c,1);
+            c=color;
+            write(serial_g3d2,&c,1);
+            usleep(200);
+
+        
     }
 }
