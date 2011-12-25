@@ -43,6 +43,12 @@ int button_down(unsigned int nr, unsigned int button) {
 	}
 	return 0;
 }
+int is_occupied(unsigned int nr) {
+	return 0;
+}
+void push_lines(unsigned int nr, unsigned int lines)
+{
+}
 
 
 static int map_key(unsigned int sdl_key) {
@@ -102,11 +108,24 @@ int main(int argc, char *argv[]) {
 		SDL_MapRGB(screen->format, 0x00,0xff,0x00)
 	};
 
-	int input_nr = 0;
+	int input_nr = 5;
 	int key;
 	int fast = 0;
+
 	int running = 1;
 	while(running) {
+
+	for(int i = 0;i < 5;i++)
+	{
+		Player* p = &players[i];
+		if(!p->state) {
+			p->nr = add_player();	// TODO: player nick etc.
+			p->state = 1;
+		}
+	}
+
+
+
 		SDL_Event ev;
 		while(SDL_PollEvent(&ev)) {
 

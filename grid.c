@@ -190,7 +190,7 @@ static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
 
 static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 
-	if(0) {
+	if(is_occupied(grid->nr)) {
 		*mov = button_down(grid->nr, BUTTON_RIGHT)
 				- button_down(grid->nr, BUTTON_LEFT);
 		*rot = button_down(grid->nr, BUTTON_A)
@@ -203,7 +203,7 @@ static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 
 	if(*mov != grid->input_mov) grid->input_rep = 0;
 	grid->input_mov = *mov;
-	if(grid->input_rep <= 0) grid->input_rep = 2;
+	if(grid->input_rep <= 0) grid->input_rep = 6;
 	else {
 		grid->input_rep--;
 		*mov = 0;
@@ -337,6 +337,8 @@ static void update_grid_clearlines(Grid* grid) {
 			grid->highlight[y] = 0;
 
 			grid->lines++;
+			push_lines(grid->nr, grid->lines);
+
 			grid->level_progress++;
 			if(grid->level_progress == 10) {
 				grid->level_progress = 0;
@@ -388,7 +390,8 @@ void init_grid(Grid* grid, int nr) {
 	grid->level_progress = 0;
 	grid->lines = 0;
 	grid->animation = 0;
-	grid->state = STATE_FREE;
+//	grid->state = STATE_FREE;
+	grid->state = STATE_NORMAL;
 	memset(grid->matrix, 0, sizeof(grid->matrix));
 	memset(grid->highlight, 0, sizeof(grid->highlight));
 	grid->stone_count = -1;

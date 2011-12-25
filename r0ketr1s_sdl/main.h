@@ -1,3 +1,7 @@
+#ifndef MAIN_H_
+#define MAIN_H_
+
+
 
 #define PACK __attribute__((packed))
 
@@ -42,6 +46,8 @@ typedef struct {
 		} PACK join;
 
 		struct {
+			// 0 = go way
+			// 1 = accepted
 			unsigned char flags;
 			unsigned char dummy[18];
 		} PACK ack;
@@ -50,6 +56,24 @@ typedef struct {
 			unsigned char state;
 			unsigned char dummy[18];
 		} PACK button;
+
+		struct {
+			unsigned char dummy[19];
+		} PACK nickrequest;
+
+		struct {
+			// flags currently unused 
+			unsigned char flags;
+			unsigned char nick[18];
+		} PACK nick;
+
+		struct {
+			unsigned char x;
+			unsigned char y;
+			// bit 1: clear screen
+			unsigned char flags; 
+			unsigned char text[16];
+		} PACK text;
 
 	};
 
@@ -69,11 +93,43 @@ enum {
 	STATE_JOIN_ACK_TX_MAC,
 	STATE_JOIN_ACK_ACK,
 	STATE_JOIN_ACK_RESTORE_TX_MAC,
+	STATE_NICKREQUEST_TX_MAC,
+	STATE_NICKREQUEST_NICKREQUEST,
+	STATE_NICKREQUEST_RESTORE_TX_MAC,
+	STATE_TEXT_TX_MAC,
+	STATE_TEXT_TEXT,
+	STATE_TEXT_RESTORE_TX_MAC,
+};
+
+
+
+
+enum {
+    DISPLAY_WIDTH = 72,
+    DISPLAY_HEIGHT = 32
 };
 
 enum {
-	ANNOUNCE_CHANNEL	= 81,
-	GAME_CHANNEL		= 83,
+    BUTTON_A,
+    BUTTON_DOWN,
+    BUTTON_LEFT,
+    BUTTON_RIGHT,
+    BUTTON_B,
+    BUTTON_UP,
+    BUTTON_START,
+    BUTTON_SELECT,
 };
 
+enum {
+    MAX_PLAYERS = 6
+};
+    
 
+int button_down(unsigned int nr, unsigned int button);
+int is_occupied(unsigned int nr);
+void push_lines(unsigned int nr, unsigned int lines);
+unsigned int rand_int(unsigned int limit);
+void pixel(int x, int y, unsigned char color);
+
+
+#endif
