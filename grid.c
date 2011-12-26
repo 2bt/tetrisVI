@@ -399,7 +399,7 @@ void init_grid(Grid* grid, int nr) {
 	new_stone(grid);
 	int x, y;
 	for(x = 0; x < 12; x++) {
-		for(y = 5; y < 32; y++) {
+		for(y = 0; y < 32; y++) {
 			pixel(grid->nr * 12 + x, y, 0);
 		}
 	}
