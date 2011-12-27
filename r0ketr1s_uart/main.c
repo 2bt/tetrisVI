@@ -395,9 +395,9 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 }
 
 int main(int argc, char *argv[]) {
-
-	for(int x = 0; x < DISPLAY_WIDTH; x++)
-		for(int y = 0; y < DISPLAY_HEIGHT; y++)
+	int x, y;
+	for(x = 0; x < DISPLAY_WIDTH; x++)
+		for(y = 0; y < DISPLAY_HEIGHT; y++)
 			display[x][y] = 16;
 
 	puts("main");
