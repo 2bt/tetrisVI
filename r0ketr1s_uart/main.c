@@ -397,6 +397,10 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 
 int main(int argc, char *argv[]) {
 
+	for(int x = 0; x < DISPLAY_WIDTH; x++)
+		for(int y = 0; y < DISPLAY_HEIGHT; y++)
+			display[x][y] = 16;
+
 	puts("main");
 	init_serial();
 	puts("initilaized");
@@ -422,8 +426,7 @@ int main(int argc, char *argv[]) {
 	unsigned long long tetris_time = time;
 	int state = STATE_INIT_PACKETLEN;
 
-    for(i = 0; i < MAX_PLAYERS; i++)
-    {
+    for(i = 0; i < MAX_PLAYERS; i++) {
     	init_grid(&grids[i], i);
 //    	activate_grid(&grids[i]);
     }
