@@ -118,20 +118,19 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 	static unsigned char magic[4] = { CMD_ESC, 0, CMD_ESC, CMD_END };
 
 	magic[1] = cmd;
-//	tcdrain(serial);
+	tcdrain(serial_bridge);
 	assert(write(serial_bridge, magic, 2) == 2);
 	int i;
 	for(i = 0; i < len; i++) {
-//		tcdrain(serial);
+		tcdrain(serial_bridge);
 		assert(write(serial_bridge, &buffer[i], 1) == 1);
 		if(buffer[i] == 92) {
-//			tcdrain(serial);
+			tcdrain(serial_bridge);
 			assert(write(serial_bridge, &buffer[i], 1) == 1);
 		}
 	}
-//	tcdrain(serial);
+	tcdrain(serial_bridge);
 	assert(write(serial_bridge, magic + 2, 2) == 2);
-//	tcdrain(serial);
 	
 }
 
@@ -180,8 +179,8 @@ void prepare_announce() {
 	announce_packet.announce.game_id[1] = game_id[1];
 	announce_packet.announce.game_flags = 4;
 
-	announce_packet.announce.interval = 1;
-	announce_packet.announce.jitter = 6;
+	announce_packet.announce.interval = 0;
+	announce_packet.announce.jitter = 1;
 	memcpy(announce_packet.announce.game_name, "tetrisVI", 8);
 }
 
@@ -347,13 +346,15 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 						//paket indicator
 						if(display[10][1+(i*12)]==0)
 						{
-							display[10][1+(i*12)]=15;
+//							display[10][1+(i*12)]=15;
+							pixel(1+(i*12),10,15);
 						}
 						else
 						{
-							display[10][1+(i*12)]=0;
+//							display[10][1+(i*12)]=0;
+							pixel(1+(i*12),10,0);
 						}
-						
+			
 						break;
 					}
 				}
