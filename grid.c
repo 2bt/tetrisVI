@@ -58,15 +58,17 @@ static int grid_collision(Grid* grid, int top_also) {
 				if(top_also) {
 					if(	x + grid->x < 0 || x + grid->x >= GRID_WIDTH ||
 						y + grid->y < 0 || y + grid->y >= GRID_HEIGHT ||
-						grid->matrix[y + grid->y][x + grid->x])
+						grid->matrix[y + grid->y][x + grid->x]) {
 						return 1;
+					}
 				}
 				else {
 					if(	x + grid->x < 0 || x + grid->x >= GRID_WIDTH ||
 						y + grid->y >= GRID_HEIGHT || (
 						y + grid->y >= 0 &&
-						grid->matrix[y + grid->y][x + grid->x]))
+						grid->matrix[y + grid->y][x + grid->x])) {
 						return 1;
+					}
 				}
 			}
 		}
@@ -100,7 +102,7 @@ static int rate_grid(Grid* grid) {
 			if(grid->matrix[y][x]) magic += y;
 			else if(y > 0 && grid->matrix[y - 1][x]) magic -= 20;
 
-			if(grid->matrix[y][x] == -1) {
+			if(grid->matrix[y][x] == 127) {
 				if(y > 0 && grid->matrix[y - 1][x] > 0) magic += 20;
 				if(x == 0 || grid->matrix[y][x - 1] > 0) magic += 20;
 				if(y == GRID_HEIGHT - 1 || grid->matrix[y + 1][x] > 0) magic += 20;
@@ -122,7 +124,6 @@ static int rate_grid(Grid* grid) {
 		for(x = 0; x < GRID_WIDTH; x++) grid->matrix[0][x] = 0;
 	}
 
-
 	int height = 0;
 	for(y = GRID_HEIGHT - 1; y >= 0; y--) {
 		for(x = 0; x < GRID_WIDTH; x++) {
@@ -131,7 +132,6 @@ static int rate_grid(Grid* grid) {
 	}
 
 	magic -= height * 4;
-
 	return magic;
 }
 
@@ -164,9 +164,8 @@ static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
 			while(!grid_collision(grid, 0)) grid->y++;
 			grid->y--;
 			if(!grid_collision(grid, 1)) {
-
 				memcpy(bot, grid, sizeof(Grid));
-				stone_to_grid(bot, -1);
+				stone_to_grid(bot, 127);
 
 				int m = rate_grid(bot);
 				if(first || m > magic) {
@@ -185,11 +184,11 @@ static void grid_bot(Grid* grid, int* mov, int* rot, int* drop) {
 		grid->rot = grid->rot * 2 % 15;
 	}
 	grid->rot = save_rot;
+
 }
 
 
 static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
-
 	if(is_occupied(grid->nr)) {
 		*mov = button_down(grid->nr, BUTTON_RIGHT)
 				- button_down(grid->nr, BUTTON_LEFT);

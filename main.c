@@ -46,8 +46,7 @@ int button_down(unsigned int nr, unsigned int button) {
 int is_occupied(unsigned int nr) {
 	return 0;
 }
-void push_lines(unsigned int nr, unsigned int lines)
-{
+void push_lines(unsigned int nr, unsigned int lines) {
 }
 
 
@@ -113,9 +112,8 @@ int main(int argc, char *argv[]) {
 	int fast = 0;
 
 	int running = 1;
-	while(running) {
 
-	for(int i = 0;i < 5;i++)
+	for(int i = 0; i < 5;i++)
 	{
 		Player* p = &players[i];
 		if(!p->state) {
@@ -125,6 +123,7 @@ int main(int argc, char *argv[]) {
 	}
 
 
+	while(running) {
 
 		SDL_Event ev;
 		while(SDL_PollEvent(&ev)) {
@@ -214,10 +213,12 @@ static unsigned int my_rand(void) {
 	z3 = ((z3 & 4294967280U) << 7) ^ b;
 	b  = ((z4 << 3) ^ z4) >> 12;
 	z4 = ((z4 & 4294967168U) << 13) ^ b;
-	return (z1 ^ z2 ^ z3 ^ z4);
+	unsigned int ret = z1 ^ z2 ^ z3 ^ z4;
+	return ret;
 }
 
 unsigned int rand_int(unsigned int limit) {
-	return my_rand() % limit;
+	unsigned int ret = my_rand() % limit;
+	return ret;
 }
 
