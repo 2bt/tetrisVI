@@ -6,8 +6,7 @@
 #include "tetris.h"
 
 enum {
-	MAX_PLAYERS = 1
-//	MAX_PLAYERS = 6
+	MAX_PLAYERS = 6
 };
 
 static Grid grids[MAX_PLAYERS];
