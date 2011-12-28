@@ -399,7 +399,8 @@ void init_grid(Grid* grid, int nr) {
 	int x, y;
 	for(x = 0; x < 12; x++) {
 		for(y = 0; y < 32; y++) {
-			pixel(grid->nr * 12 + x, y, 0);
+//			pixel(grid->nr * 12 + x, y, 0);
+			set_frame_buffer(grid->nr * 12 + x, y, 0);
 		}
 	}
 }
@@ -463,7 +464,8 @@ void draw_grid(Grid* grid) {
 				if(STONES[grid->next_stone][x * 4 + y] & grid->next_rot) {
 					color = grid->next_stone + 1;
 				}
-				pixel(grid->nr * 12 + x + 7, y + 6, PALETTE[color]);
+				set_frame_buffer(grid->nr * 12 + x + 7, y + 6, PALETTE[color]);
+//				pixel(grid->nr * 12 + x + 7, y + 6, PALETTE[color]);
 			}
 		}
 		// matrix
@@ -476,7 +478,8 @@ void draw_grid(Grid* grid) {
 					STONES[grid->stone][(x - grid->x) * 4 + y - grid->y] & grid->rot) {
 					color = grid->stone + 1;
 				}
-				pixel(grid->nr * 12 + 1 + x, y + 11, PALETTE[color]);
+				set_frame_buffer(grid->nr * 12 + 1 + x, y + 11, PALETTE[color]);
+//				pixel(grid->nr * 12 + 1 + x, y + 11, PALETTE[color]);
 			}
 		}
 		// score

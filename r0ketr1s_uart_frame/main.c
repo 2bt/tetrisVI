@@ -55,7 +55,7 @@ Player players[MAX_PLAYER];
 
 void init_serial() {
 
-	serial_bridge = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
+	serial_bridge = open("/dev/serial/by-id/usb-MICROBUILDER_LPC1343_COM_PORT_DEMO00000000-if00", O_RDWR | O_NONBLOCK);
 //	serial_bridge = open("/dev/cu.usbmodem5d11", O_RDWR | O_NONBLOCK);
 	assert(serial_bridge != -1);
 
@@ -75,7 +75,7 @@ void init_serial() {
 	tcsetattr(serial_bridge, TCSANOW, &config);
 
 
-	serial_g3d2 = open("/dev/ttyUSB1", O_RDWR | O_NONBLOCK);
+	serial_g3d2 = open("/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A100DDXN-if00-port0", O_RDWR | O_NONBLOCK);
 	assert(serial_g3d2 != -1);
 
 	struct termios config2;
@@ -265,8 +265,7 @@ void nickrequest(int nr) {
 	send_packet(&nickrequest_packet);
 }
 
-void 
-sendtext(int nr) {
+void sendtext(int nr) {
 	memcpy(text_packet.id, players[nr].id, 4);
 	unsigned char* c = (unsigned char*)&text_packet.counter;
 	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {}
@@ -365,6 +364,7 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
 						memcpy(players[i].nick, packet->nick.nick, 18);
+						printf("nick %18s\n", players[i].nick);
 						players[i].request_nick = 0;
 						break;
 					}
@@ -423,6 +423,7 @@ int main(int argc, char *argv[]) {
 	unsigned char byte;
 	unsigned char cmd = 0;
 	int esc = 0;
+	unsigned int announce_chan = ANNOUNCE_CHANNEL1;
 
 	unsigned long long time = get_time();
 	unsigned long long announce_time = time;
@@ -465,14 +466,15 @@ int main(int argc, char *argv[]) {
 
 		unsigned long long new_time = get_time();
 
-		if(new_time - tetris_time > 20) {
+		if(new_time - tetris_time > 15) {
 
 			tetris_time = new_time;
 
 			for(i = 0; i < MAX_PLAYERS; i++) {
 				update_grid(&grids[i]);
-				draw_grid(&grids[i]);
+				draw_grid(&grids[i]);	
 			}
+			push_frame_buffer();
 
 		}
 
@@ -634,7 +636,8 @@ int main(int argc, char *argv[]) {
 
 
 		case STATE_ANNOUNCE_CHAN:
-			set_chan(ANNOUNCE_CHANNEL);
+			announce_chan = (announce_chan == ANNOUNCE_CHANNEL1) ? ANNOUNCE_CHANNEL2 : ANNOUNCE_CHANNEL1;
+			set_chan(announce_chan);
 			cmd_block = 1;
 			state = STATE_ANNOUNCE_ANNOUNCE;
 			break;
@@ -681,25 +684,62 @@ void pixel(int x, int y, unsigned char color) {
     if(display[y][x] != color) {
         display[y][x] = color;
         
-        
-			y = 31-y;
+		y = 31 - y;
 
-			unsigned char c=104;
-			write(serial_g3d2,&c,1);
-            int x2 = x % 8;
-            int y2 = y % 8;
-            int mod = (x-x2)/8 + ((y-y2)/8*9);
+		unsigned char c = 104;
+		write(serial_g3d2, &c, 1);
+		int x2 = x % 8;
+		int y2 = y % 8;
+		int mod = (x - x2) / 8 + ((y - y2) / 8 * 9);
 
-            c=mod;
-            write(serial_g3d2,&c,1);
-            c=x2;
-            write(serial_g3d2,&c,1);
-            c=y2;
-            write(serial_g3d2,&c,1);
-            c=color;
-            write(serial_g3d2,&c,1);
-            usleep(200);
-
+		c=mod;
+		write(serial_g3d2, &c, 1);
+		c=x2;
+		write(serial_g3d2, &c, 1);
+		c=y2;
+		write(serial_g3d2, &c, 1);
+		c=color;
+		write(serial_g3d2, &c, 1);
+		usleep(200);
         
     }
+}
+
+void set_frame_buffer(int x, int y, unsigned char color) {
+    assert(x < DISPLAY_WIDTH);
+    assert(y < DISPLAY_HEIGHT);
+    assert(color < 16);
+	display[y][x] = color;
+}
+
+void push_frame_buffer() {
+//	y = 31 - y;
+
+	unsigned char c = 103;
+	write(serial_g3d2, &c, 1);
+
+	int x = 0, y = 0, mod_row = 0, i;
+
+	for(i = 0; i < (DISPLAY_WIDTH*DISPLAY_HEIGHT / 2); i++) {
+		c= display[31 - (y + mod_row)][x] + ((display[31 - (y + mod_row + 1)][x]) << 4);
+		write(serial_g3d2, &c, 1);
+		
+		y += 2;
+		if(y == 8) {
+			y=0;
+			x++;
+			if((x % 8) == 0) {
+				tcdrain(serial_g3d2);
+			}
+			if(x == 72) {
+				x=0;
+				mod_row+=8;
+			}
+		}
+
+
+	}
+			
+//	usleep(2000);
+
 }

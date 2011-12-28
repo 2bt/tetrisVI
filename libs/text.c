@@ -31,11 +31,11 @@ void putc_5x3_at (int x,int y, char text, char brightness)
 		{
 			if(ch & (1<<j))
 			{
-				pixel(x+i,y-j+4,brightness);
+				set_frame_buffer(x+i,y-j+4,brightness);
 			}
 			else
 			{
-				pixel(x+i,y-j+4,0);
+				set_frame_buffer(x+i,y-j+4,0);
 			}
 		}
 	}
