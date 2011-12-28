@@ -398,7 +398,7 @@ int main(int argc, char *argv[]) {
 	int x, y;
 	for(x = 0; x < DISPLAY_WIDTH; x++)
 		for(y = 0; y < DISPLAY_HEIGHT; y++)
-			display[x][y] = 16;
+			display[y][x] = 16;
 
 	puts("main");
 	init_serial();
