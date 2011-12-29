@@ -39,7 +39,7 @@ typedef struct Grid {
 
 void init_grid(Grid* grid, int nr);
 int activate_grid(Grid* grid);
-void update_grid(Grid* grid);
+int update_grid(Grid* grid); // return: 1 if something changed
 void draw_grid(Grid* grid);
 
 #endif
