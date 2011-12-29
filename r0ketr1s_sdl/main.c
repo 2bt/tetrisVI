@@ -34,8 +34,8 @@ typedef struct {
 	int occupied;
 	int request_nick;
 	int is_ready_for_nick;
-	int needs_text;
-	int needs_lines;
+	int needs_text; // "Player <n>"
+	int needs_lines; // will never actually be set at the same time as needs_text (text is sent just once at the beginning)
 	int lines;
 	int is_ready_for_text;
 	int button_state;
@@ -55,11 +55,9 @@ enum {
 Joiner joiners[MAX_JOINER];
 Player players[MAX_PLAYER];
 
-
 void init_serial() {
 
-//	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
-	serial = open("/dev/cu.usbmodem5d11", O_RDWR | O_NONBLOCK);
+	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
 	assert(serial != -1);
 
 	struct termios config;
@@ -97,26 +95,24 @@ void push_lines(unsigned int nr, unsigned int lines) {
 
 void send_cmd(int cmd, const unsigned char* buffer, int len) {
 
-	printf("send cmd %c len %d\n", cmd, len);
+	//printf("send cmd %c len %d\n", cmd, len);
 
 	static unsigned char magic[4] = { CMD_ESC, 0, CMD_ESC, CMD_END };
 
 	magic[1] = cmd;
-//	tcdrain(serial);
 	assert(write(serial, magic, 2) == 2);
+	usleep(500);
 	int i;
 	for(i = 0; i < len; i++) {
-//		tcdrain(serial);
 		assert(write(serial, &buffer[i], 1) == 1);
-		if(buffer[i] == 92) {
-//			tcdrain(serial);
+		usleep(500);
+		if(buffer[i] == CMD_ESC) {
 			assert(write(serial, &buffer[i], 1) == 1);
+			usleep(500);
 		}
 	}
-//	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
-//	tcdrain(serial);
-	
+	usleep(500);
 }
 
 void set_chan(unsigned char chan) {
@@ -147,11 +143,13 @@ void send_packet(Packet* p) {
 	p->crc[0] = (crc >> 8) & 0xff;
 	p->crc[1] = crc & 0xff;
 
+	
 	send_cmd(CMD_PACKET, (unsigned char*)p, sizeof(Packet));
+	printf("sent packet %c\n", p->command);
 }
 
 
-Packet announce_packet;
+static Packet announce_packet;
 void prepare_announce() {
 	memset(&announce_packet, 0, sizeof(Packet));
 	announce_packet.len = 32;
@@ -176,7 +174,7 @@ void announce() {
 }
 
 
-Packet ack_packet;
+static Packet ack_packet;
 void prepare_acknowledge() {
 	memset(&ack_packet, 0, sizeof(Packet));
 	ack_packet.len = 32;
@@ -184,7 +182,7 @@ void prepare_acknowledge() {
 	ack_packet.command = 'a';
 }
 
-Packet nickrequest_packet;
+static Packet nickrequest_packet;
 void prepare_nickrequest() {
 	memset(&nickrequest_packet, 0, sizeof(Packet));
 	nickrequest_packet.len = 32;
@@ -192,7 +190,7 @@ void prepare_nickrequest() {
 	nickrequest_packet.command = 'N';
 }
 
-Packet text_packet;
+static Packet text_packet;
 void prepare_text() {
 	memset(&text_packet, 0, sizeof(Packet));
 	text_packet.len = 32;
@@ -254,26 +252,26 @@ void
 sendtext(int nr) {
 	memcpy(text_packet.id, players[nr].id, 4);
 	unsigned char* c = (unsigned char*)&text_packet.counter;
-	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {}
+	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {} // increment counter
 
 
 	if(players[nr].needs_text)
 	{
 		text_packet.text.x=1;
 		text_packet.text.y=1;
-		text_packet.text.flags=1;
+		text_packet.text.flags=1; // clear screen before printing
 	
 		memcpy(text_packet.text.text, "Player ", 7);
 		text_packet.text.text[7] = 49 + nr;
 	}
-
-	if(players[nr].needs_lines)
+	
+	else if(players[nr].needs_lines)
 	{
 		text_packet.text.x=1;
 		text_packet.text.y=15;
 		text_packet.text.flags=0;
 	
-		sprintf(text_packet.text.text, "Lines %i", players[nr].lines);
+		sprintf((char*)text_packet.text.text, "Lines %i", players[nr].lines);
 	}
 	
 	send_packet(&text_packet);
@@ -322,7 +320,8 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 			case 'B':
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
-						if((players[i].needs_text)||(players[i].needs_lines))   players[i].is_ready_for_text = 1;
+						if((players[i].needs_text)||(players[i].needs_lines))
+							players[i].is_ready_for_text = 1;
 						if(players[i].request_nick) players[i].is_ready_for_nick = 1;
 						players[i].last_active = get_time();
 						players[i].button_state = packet->button.state;
@@ -359,8 +358,10 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 			case 'a':
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
-						players[i].needs_text = 0; 
-						players[i].needs_lines = 0; 
+						if (players[i].needs_text)
+							players[i].needs_text = 0; 
+						else
+							players[i].needs_lines = 0; 
 						break;
 					}
 				}
@@ -374,7 +375,7 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 		return;
 
 	default:
-		puts("what???");
+		printf("Unknown command 0x%02X\n", cmd);
 		return;
 	}
 }
@@ -467,7 +468,8 @@ int main(int argc, char *argv[]) {
 				continue;
 			}
 
-			if(esc) {
+			if (pos >= 254) pos = 0; // the next loop run could go out of our array... we get garbage anyway, so just keep reading garbage
+			if(esc) { // last byte was ESC
 				esc = 0;
 				if(byte == CMD_ESC) {
 					data[pos++] = CMD_ESC;
@@ -584,7 +586,9 @@ int main(int argc, char *argv[]) {
 
 			// check whether anybody should send get text
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if((players[i].is_ready_for_text)&&((players[i].needs_text)||(players[i].needs_lines))&&(!players[i].request_nick)) {
+				if((players[i].is_ready_for_text)
+						&&((players[i].needs_text)||(players[i].needs_lines))
+						&&(!players[i].request_nick)) {
 					state = STATE_TEXT_TX_MAC;
 					break;
 				}
@@ -650,7 +654,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			assert(i < MAX_PLAYER);
-			state = STATE_NICKREQUEST_RESTORE_TX_MAC;
+			state = STATE_TEXT_RESTORE_TX_MAC;
 			break;
 
 
