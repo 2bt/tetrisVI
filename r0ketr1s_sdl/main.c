@@ -105,7 +105,7 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 
 	magic[1] = cmd;
 	assert(write(serial, magic, 2) == 2);
-	usleep(300);
+	usleep(250);
 	int i;
 	for(i = 0; i < len; i++) {
 		assert(write(serial, &buffer[i], 1) == 1);
@@ -116,7 +116,7 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 		}
 	}
 	assert(write(serial, magic + 2, 2) == 2);
-	usleep(300);
+	usleep(350);
 }
 
 void set_chan(unsigned char chan) {
@@ -168,7 +168,7 @@ void prepare_announce() {
 
 	announce_packet.announce.interval = 1;
 	announce_packet.announce.jitter = 6;
-	memcpy(announce_packet.announce.game_name, "tetrisVI", 8);
+	memcpy(announce_packet.announce.game_name, "tetriBot", 8);
 }
 
 void announce() {
@@ -233,8 +233,8 @@ void join(int nr) {
 				players[i].occupied = 1;
 				players[i].needs_text = 1; 
 				players[i].needs_lines = 0;
-				players[i].needs_gamestate = 1;
-				players[i].ready_to_send = 1;
+				players[i].needs_gamestate = 0;
+				players[i].ready_to_send = 0;
 				players[i].last_active = get_time();
 				memcpy(players[i].id, joiners[nr].id, 4);
 				memcpy(players[i].counter, joiners[nr].counter, 4);
@@ -289,17 +289,14 @@ sendtext(int nr) {
 }
 
 void sendstate(int nr) {
-	memcpy(text_packet.id, players[nr].id, 4);
-	unsigned char* c = (unsigned char*)&text_packet.counter;
+	memcpy(blob_packet.id, players[nr].id, 4);
+	unsigned char* c = (unsigned char*)&blob_packet.counter;
 	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {} // increment counter
 
-	text_packet.text.x=1;
-	text_packet.text.y=30;
-	text_packet.text.flags=0;
-
-	sprintf((char*)text_packet.text.text, "Position %i|%i   ", grids[nr].x, grids[nr].y);
+	blob_packet.blob.data[0]=grids[nr].x;
+	blob_packet.blob.data[1]=grids[nr].y;
 	
-	send_packet(&text_packet);
+	send_packet(&blob_packet);
 }
 
 int cmd_block = 0; // block doing commands till we get an "CMD_OK"
@@ -375,6 +372,7 @@ static void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 							players[i].needs_lines = 0;
 						else
 							players[i].needs_gamestate = 0;
+						players[i].ready_to_send = 1;
 						break;
 					}
 				}
@@ -514,7 +512,6 @@ int main(int argc, char *argv[]) {
 				draw_grid(&grids[i]);
 				if (updt && players[i].occupied) {
 					players[i].needs_gamestate = 1;
-					printf("need statz %d\n", i);
 				}
 			}
 
