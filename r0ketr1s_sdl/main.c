@@ -282,7 +282,7 @@ sendtext(int nr) {
 		text_packet.text.y=15;
 		text_packet.text.flags=0;
 	
-		sprintf((char*)text_packet.text.text, "Lines %i", players[nr].lines);
+		sprintf((char*)text_packet.text.text, "Lines %i   ", players[nr].lines);
 	}
 	
 	send_packet(&text_packet);
@@ -590,7 +590,6 @@ int main(int argc, char *argv[]) {
 			// check whether anybody wants to join
 			for(i = 0; i < MAX_JOINER; i++) {
 				if(joiners[i].occupied) {
-// 					state = STATE_JOIN_ACK_SEND;
 					joiners[i].occupied = 0;
 					cmd_block = 1;
 					join(i);
@@ -602,7 +601,6 @@ int main(int argc, char *argv[]) {
 			// check whether anybody should get text
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if(players[i].ready_to_send && wants_to_send_data(&players[i])) {
-// 					state = STATE_DATA_SEND;
 					cmd_block = 1;
 					if (players[i].needs_text || players[i].needs_lines)
 						sendtext(i);
@@ -615,37 +613,6 @@ int main(int argc, char *argv[]) {
 			if(i != MAX_PLAYER) break;
 
 			break;
-
-
-		// join stuff
-		/*case STATE_JOIN_ACK_SEND:
-			for(i = 0; i < MAX_JOINER; i++) {
-				if(joiners[i].occupied) {
-					joiners[i].occupied = 0;
-					cmd_block = 1;
-					join(i);
-					break;
-				}
-			}
-			assert(i < MAX_JOINER);
-			state = STATE_IDLE;
-			break;*/
-
-		// data send
-		/*case STATE_DATA_SEND:
-			for(i = 0; i < MAX_PLAYER; i++) {
-				if(players[i].ready_to_send && wants_to_send_data(&players[i])) {
-					cmd_block = 1;
-					if (players[i].needs_text || players[i].needs_lines)
-						sendtext(i);
-					else
-						sendstate(i);
-					players[i].ready_to_send = 0;
-					break;
-				}
-			}
-			state = STATE_IDLE;
-			break;*/
 
 
 		// announce stuff
