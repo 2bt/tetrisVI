@@ -405,6 +405,7 @@ void init_grid(Grid* grid, int nr) {
 			pixel(grid->nr * 12 + x, y, 0);
 		}
 	}
+	++grid->game_id;
 }
 
 int activate_grid(Grid* grid) {

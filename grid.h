@@ -35,6 +35,7 @@ typedef struct Grid {
 	int input_mov;
 	int input_rep;
 	int input_rot;
+	char game_id; // game-over detection for KIs
 } Grid;
 
 void init_grid(Grid* grid, int nr);

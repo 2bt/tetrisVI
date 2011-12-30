@@ -295,6 +295,11 @@ void sendstate(int nr) {
 
 	blob_packet.blob.data[0]=grids[nr].x;
 	blob_packet.blob.data[1]=grids[nr].y;
+	blob_packet.blob.data[2]=grids[nr].stone;
+	blob_packet.blob.data[3]=grids[nr].rot;
+	blob_packet.blob.data[4]=grids[nr].stone_count;
+	blob_packet.blob.data[5]=grids[nr].game_id;
+	
 	
 	send_packet(&blob_packet);
 }
