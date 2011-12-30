@@ -98,9 +98,9 @@ enum {
 	STATE_ANNOUNCE_SET_MAC,
 	STATE_ANNOUNCE_SEND,
 	// join
-	STATE_JOIN_ACK_SEND,
+// 	STATE_JOIN_ACK_SEND,
 	// send some stuff
-	STATE_DATA_SEND,
+// 	STATE_DATA_SEND,
 };
 
 

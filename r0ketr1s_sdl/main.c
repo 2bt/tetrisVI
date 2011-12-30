@@ -32,11 +32,11 @@ typedef struct {
 
 typedef struct {
 	int occupied;
-	// stuff to be sent to player
+	// stuff to be sent to player. priority: text, lines, state
 	int needs_text; // "Player <n>"
 	int needs_lines; // will never actually be set at the same time as needs_text (text is sent just once at the beginning)
-	//int needs_gamestate;
-	//int is_ready_for_data;
+	int needs_gamestate;
+	int ready_to_send; // set to 0 after sending data, before we got an ack
 	// player state
 	int lines;
 	int button_state;
@@ -93,30 +93,30 @@ void push_lines(unsigned int nr, unsigned int lines) {
 }
 
 int wants_to_send_data(Player *p) {
-	return p->occupied && (p->needs_text || p->needs_lines);// || p->needs_gamestate;
+	return p->occupied && (p->needs_text || p->needs_lines || p->needs_gamestate);
 }
 
 
 void send_cmd(int cmd, const unsigned char* buffer, int len) {
 
-	printf("<= send cmd %c\n", cmd);
+//	printf("<= send cmd %c\n", cmd);
 
 	static unsigned char magic[4] = { CMD_ESC, 0, CMD_ESC, CMD_END };
 
 	magic[1] = cmd;
 	assert(write(serial, magic, 2) == 2);
-	usleep(500);
+	usleep(300);
 	int i;
 	for(i = 0; i < len; i++) {
 		assert(write(serial, &buffer[i], 1) == 1);
-		usleep(500);
+		usleep(200);
 		if(buffer[i] == CMD_ESC) {
 			assert(write(serial, &buffer[i], 1) == 1);
-			usleep(500);
+			usleep(200);
 		}
 	}
 	assert(write(serial, magic + 2, 2) == 2);
-	usleep(500);
+	usleep(300);
 }
 
 void set_chan(unsigned char chan) {
@@ -231,12 +231,11 @@ void join(int nr) {
 			if(!players[i].occupied) {
 				printf("player %i added\n",i);
 				players[i].occupied = 1;
-				//players[i].request_nick = 2;
 				players[i].needs_text = 1; 
-				//players[i].needs_gamestate = 1; 
-				players[i].needs_lines = 0; 
-				players[i].last_active = get_time(); 
-				//players[i].is_ready_for_data = 0; 
+				players[i].needs_lines = 0;
+				players[i].needs_gamestate = 1;
+				players[i].ready_to_send = 1;
+				players[i].last_active = get_time();
 				memcpy(players[i].id, joiners[nr].id, 4);
 				memcpy(players[i].counter, joiners[nr].counter, 4);
 
@@ -289,6 +288,20 @@ sendtext(int nr) {
 	send_packet(&text_packet);
 }
 
+void sendstate(int nr) {
+	memcpy(text_packet.id, players[nr].id, 4);
+	unsigned char* c = (unsigned char*)&text_packet.counter;
+	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {} // increment counter
+
+	text_packet.text.x=1;
+	text_packet.text.y=30;
+	text_packet.text.flags=0;
+
+	sprintf((char*)text_packet.text.text, "Position %i|%i   ", grids[nr].x, grids[nr].y);
+	
+	send_packet(&text_packet);
+}
+
 int cmd_block = 0; // block doing commands till we get an "CMD_OK"
 
 static void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
@@ -297,7 +310,7 @@ static void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 
 	switch(cmd) {
 	case CMD_OK:
-		printf("=> received ok cmd\n");
+//		printf("=> received ok cmd\n");
 		cmd_block = 0;
 		return;
 
@@ -332,8 +345,7 @@ static void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 			case 'B':
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
-						//if(players[i].request_nick == 2) players[i].request_nick = 1; // 
-						//if(wants_to_send_data(&players[i])) players[i].is_ready_for_data = 1;
+						players[i].ready_to_send = 1;
 						players[i].last_active = get_time();
 						players[i].button_state = packet->button.state;
 						
@@ -354,24 +366,15 @@ static void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 				
 				break;
 
-// 			case 'n':
-// 				for(i = 0; i < MAX_PLAYER; i++) {
-// 					if(!memcmp(players[i].id, packet->id, 4)) {
-// 						memcpy(players[i].nick, packet->nick.nick, 18);
-// 						players[i].request_nick = 0;
-// 						break;
-// 					}
-// 				}
-// 				
-// 				break;
-
 			case 'a':
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
 						if (players[i].needs_text)
 							players[i].needs_text = 0; 
+						else if (players[i].needs_lines)
+							players[i].needs_lines = 0;
 						else
-							players[i].needs_lines = 0; 
+							players[i].needs_gamestate = 0;
 						break;
 					}
 				}
@@ -502,7 +505,7 @@ int main(int argc, char *argv[]) {
 
 		unsigned long long new_time = get_time();
 
-		if(new_time - tetris_time > 20) {
+		if(new_time - tetris_time > 25) {
 
 			tetris_time = new_time;
 
@@ -510,7 +513,7 @@ int main(int argc, char *argv[]) {
 				int updt = update_grid(&grids[i]);
 				draw_grid(&grids[i]);
 				if (updt && players[i].occupied) {
-					//players[i].needs_gamestate = 1;
+					players[i].needs_gamestate = 1;
 					printf("need statz %d\n", i);
 				}
 			}
@@ -584,28 +587,28 @@ int main(int argc, char *argv[]) {
 			}
 
 
-			// check whether anybody wans to join
+			// check whether anybody wants to join
 			for(i = 0; i < MAX_JOINER; i++) {
 				if(joiners[i].occupied) {
-					state = STATE_JOIN_ACK_SEND;
+// 					state = STATE_JOIN_ACK_SEND;
+					joiners[i].occupied = 0;
+					cmd_block = 1;
+					join(i);
 					break;
 				}
 			}
 			if(i != MAX_JOINER) break;
 
-			// check whether anybody should send their nick (i.e., be sent the nick request)
-// 			for(i = 0; i < MAX_PLAYER; i++) {
-// 				if((players[i].is_ready_for_nick_request)&&(players[i].request_nick)) {
-// 					state = STATE_NICKREQUEST_SEND;
-// 					break;
-// 				}
-// 			}
-// 			if(i != MAX_PLAYER) break;
-
-			// check whether anybody should send get text
+			// check whether anybody should get text
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(wants_to_send_data(&players[i])) {
-					state = STATE_DATA_SEND;
+				if(players[i].ready_to_send && wants_to_send_data(&players[i])) {
+// 					state = STATE_DATA_SEND;
+					cmd_block = 1;
+					if (players[i].needs_text || players[i].needs_lines)
+						sendtext(i);
+					else
+						sendstate(i);
+					players[i].ready_to_send = 0;
 					break;
 				}
 			}
@@ -615,7 +618,7 @@ int main(int argc, char *argv[]) {
 
 
 		// join stuff
-		case STATE_JOIN_ACK_SEND:
+		/*case STATE_JOIN_ACK_SEND:
 			for(i = 0; i < MAX_JOINER; i++) {
 				if(joiners[i].occupied) {
 					joiners[i].occupied = 0;
@@ -626,39 +629,23 @@ int main(int argc, char *argv[]) {
 			}
 			assert(i < MAX_JOINER);
 			state = STATE_IDLE;
-			break;
+			break;*/
 
 		// data send
-// 		case STATE_NICKREQUEST_SEND:
-// 			for(i = 0; i < MAX_PLAYER; i++) {
-// 				if((players[i].is_ready_for_nick_request)&&(players[i].request_nick)) {
-// 					cmd_block = 1;
-// 					players[i].is_ready_for_nick_request=0;
-// 					players[i].is_ready_for_data=0;
-// 					nickrequest(i);
-// 					break;
-// 				}
-// 			}
-// 			assert(i < MAX_PLAYER);
-// 			state = STATE_IDLE;
-// 			break;
-
-		case STATE_DATA_SEND:
+		/*case STATE_DATA_SEND:
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(wants_to_send_data(&players[i])) {
+				if(players[i].ready_to_send && wants_to_send_data(&players[i])) {
 					cmd_block = 1;
-// 					players[i].is_ready_for_nick_request=0;
-// 					players[i].is_ready_for_data=0;
-					//if (players[i].needs_gamestate)
-					//{/*sendstate(i);*/}
-					//else
+					if (players[i].needs_text || players[i].needs_lines)
 						sendtext(i);
+					else
+						sendstate(i);
+					players[i].ready_to_send = 0;
 					break;
 				}
 			}
-			assert(i < MAX_PLAYER);
 			state = STATE_IDLE;
-			break;
+			break;*/
 
 
 		// announce stuff
