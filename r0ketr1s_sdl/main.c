@@ -35,10 +35,12 @@ typedef struct {
 
 typedef struct {
 	int occupied;
+	// stuff to be sent to player. priority: text, lines
 	int needs_text; // "Player <n>"
 	int needs_lines; // will never actually be set at the same time as needs_text (text is sent just once at the beginning)
+	int ready_to_send; // set to 0 after sending data, before we got an ack
+	// player state
 	int lines;
-	int is_ready_for_text;
 	int button_state;
 	long long last_active;
 	unsigned int id;
@@ -72,6 +74,10 @@ void push_lines(unsigned int nr, unsigned int lines) {
 	players[nr].lines = lines;
 }
 
+int wants_to_send_data(Player *p) {
+	return p->occupied && (p->needs_text || p->needs_lines);
+}
+
 
 void announce() {
 	struct Packet *announce_packet = new_packet('A');
@@ -82,7 +88,7 @@ void announce() {
 	announce_packet->announce.game_flags = 4;
 	announce_packet->announce.interval = 1;
 	announce_packet->announce.jitter = 6;
-	memcpy(announce_packet->announce.game_name, "tetriBot", 8);
+	memcpy(announce_packet->announce.game_name, "tetrisVI", 8);
 	queue_packet(announce_packet, ANNOUNCE_CHANNEL, announce_addr);
 }
 
@@ -110,16 +116,14 @@ void join(int nr) {
 				printf("player %i added\n",i);
 				players[i].occupied = 1;
 				players[i].needs_text = 1; 
-				players[i].needs_lines = 0; 
-				players[i].last_active = get_time(); 
-				players[i].is_ready_for_text = 0; 
+				players[i].needs_lines = 0;
+				players[i].ready_to_send = 1;
+				players[i].last_active = get_time();
 				players[i].id = joiners[nr].id;
-				//memcpy(players[i].counter, joiners[nr].counter, 4);
 
 				ack_packet->ack.flags = 1;
 
-		    	init_grid(&grids[i], i);
-//    			activate_grid(&grids[i]);
+				init_grid(&grids[i], i);
 
 				break;
 			}
@@ -191,8 +195,6 @@ void process_packet(struct Packet* packet) {
 		case 'B':
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if(players[i].id == packet->id) {
-					if((players[i].needs_text)||(players[i].needs_lines))
-						players[i].is_ready_for_text = 1;
 					players[i].last_active = get_time();
 					players[i].button_state = packet->button.state;
 					
@@ -220,6 +222,7 @@ void process_packet(struct Packet* packet) {
 						players[i].needs_text = 0; 
 					else
 						players[i].needs_lines = 0;
+					players[i].ready_to_send = 1;
 					break;
 				}
 			}
@@ -339,7 +342,7 @@ int main(int argc, char *argv[]) {
 				continue;
 			}
 
-			// check for deactive players
+			// check for inactive players
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if(players[i].occupied) {
 					if((get_time() - players[i].last_active) > 10000) {
@@ -349,7 +352,6 @@ int main(int argc, char *argv[]) {
 				    	init_grid(&grids[i], i);
 						
 					}
-
 				}
 			}
 
@@ -362,23 +364,21 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			if(i != MAX_JOINER) continue;
-			
-			// check wheter anybody needs text
-			for(i = 0; i < MAX_JOINER; i++) {
-				if((players[i].is_ready_for_text)
-								&&((players[i].needs_text)||(players[i].needs_lines))) {
+
+			// check whether anybody should get text
+			for(i = 0; i < MAX_PLAYER; i++) {
+				if(players[i].ready_to_send && wants_to_send_data(&players[i])) {
 					sendtext(i);
-					players[i].is_ready_for_text = 0;
+					players[i].ready_to_send = 0;
 					break;
 				}
 			}
 			if(i != MAX_PLAYER) continue;
-
 		}
 	}
 
-    SDL_Quit();
-    return 0;
+	SDL_Quit();
+	return 0;
 }
 
 

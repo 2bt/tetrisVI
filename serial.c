@@ -106,14 +106,14 @@ static void send_cmd(int cmd, const unsigned char* buffer, int len) {
 	int i;
 	for(i = 0; i < len; i++) {
 		assert(write(serial, &buffer[i], 1) == 1);
-		usleep(200);
+		usleep(150);
 		if(buffer[i] == CMD_ESC) {
 			assert(write(serial, &buffer[i], 1) == 1);
-			usleep(200);
+			usleep(150);
 		}
 	}
 	assert(write(serial, magic + 2, 2) == 2);
-	usleep(350);
+	usleep(300);
 	cmd_block = 1;
 }
 
