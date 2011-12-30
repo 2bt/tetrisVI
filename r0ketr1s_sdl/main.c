@@ -102,19 +102,20 @@ void send_cmd(int cmd, const unsigned char* buffer, int len) {
 	static unsigned char magic[4] = { CMD_ESC, 0, CMD_ESC, CMD_END };
 
 	magic[1] = cmd;
-	tcdrain(serial);
+//	tcdrain(serial);
 	assert(write(serial, magic, 2) == 2);
 	int i;
 	for(i = 0; i < len; i++) {
-		tcdrain(serial);
+//		tcdrain(serial);
 		assert(write(serial, &buffer[i], 1) == 1);
 		if(buffer[i] == 92) {
-			tcdrain(serial);
+//			tcdrain(serial);
 			assert(write(serial, &buffer[i], 1) == 1);
 		}
 	}
-	tcdrain(serial);
+//	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
+//	tcdrain(serial);
 	
 }
 
