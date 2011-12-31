@@ -53,6 +53,21 @@ enum {
 	MAX_PLAYER = 6,
 };
 
+enum {
+	DATA_X = 0,
+	DATA_Y,
+	DATA_STONE,
+	DATA_ROT,
+	DATA_STONE_ID,
+	DATA_GAME_ID,
+	DATA_LAST_X,
+	DATA_LAST_Y,
+	DATA_LAST_STONE,
+	DATA_LAST_ROT,
+	DATA_NEXT_STONE,
+	DATA_NEXT_ROT
+};
+
 Joiner joiners[MAX_JOINER];
 Player players[MAX_PLAYER];
 
@@ -293,12 +308,18 @@ void sendstate(int nr) {
 	unsigned char* c = (unsigned char*)&blob_packet.counter;
 	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {} // increment counter
 
-	blob_packet.blob.data[0]=grids[nr].x;
-	blob_packet.blob.data[1]=grids[nr].y;
-	blob_packet.blob.data[2]=grids[nr].stone;
-	blob_packet.blob.data[3]=grids[nr].rot;
-	blob_packet.blob.data[4]=grids[nr].stone_count;
-	blob_packet.blob.data[5]=grids[nr].game_id;
+	blob_packet.blob.data[DATA_X]=grids[nr].x;
+	blob_packet.blob.data[DATA_Y]=grids[nr].y;
+	blob_packet.blob.data[DATA_STONE]=grids[nr].stone;
+	blob_packet.blob.data[DATA_ROT]=grids[nr].rot;
+	blob_packet.blob.data[DATA_STONE_ID]=grids[nr].stone_count;
+	blob_packet.blob.data[DATA_GAME_ID]=grids[nr].game_id;
+	blob_packet.blob.data[DATA_LAST_X]=grids[nr].last_x;
+	blob_packet.blob.data[DATA_LAST_Y]=grids[nr].last_y;
+	blob_packet.blob.data[DATA_LAST_STONE]=grids[nr].last_stone;
+	blob_packet.blob.data[DATA_LAST_ROT]=grids[nr].last_rot;
+	blob_packet.blob.data[DATA_NEXT_STONE]=grids[nr].next_stone;
+	blob_packet.blob.data[DATA_NEXT_ROT]=grids[nr].next_rot;
 	
 	
 	send_packet(&blob_packet);

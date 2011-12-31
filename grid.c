@@ -259,6 +259,10 @@ static int update_grid_normal(Grid* grid) {
 
 
 			// get a new stone
+			grid->last_x = grid->x;
+			grid->last_y = grid->y;
+			grid->last_stone = grid->stone;
+			grid->last_rot = grid->rot;
 			new_stone(grid);
 
 			// check for complete lines
