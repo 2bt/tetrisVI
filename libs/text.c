@@ -6,7 +6,7 @@
 #include "../main.h"
 #include "text.h"
 
-void print_5x3_at (int x,int y, char *text, char brightness)
+void print_5x3_at (int x,int y, char *text, unsigned char brightness)
 {
 	while (*text)
 	{
@@ -17,7 +17,7 @@ void print_5x3_at (int x,int y, char *text, char brightness)
 
 }
 
-void putc_5x3_at (int x,int y, char text, char brightness)
+void putc_5x3_at (int x,int y, char text, unsigned char brightness)
 {
 	text -= 32;
 
@@ -41,7 +41,7 @@ void putc_5x3_at (int x,int y, char text, char brightness)
 	}
 }
 
-void print_unsigned_5x3_at(int x, int y, unsigned int number, int length, char pad, char brightness) {
+void print_unsigned_5x3_at(int x, int y, unsigned int number, int length, char pad, unsigned char brightness) {
 	x += length * 4 - 1;
 	int i;
 	for(i = 0; i < length; i++) {
@@ -55,7 +55,7 @@ void print_unsigned_5x3_at(int x, int y, unsigned int number, int length, char p
 }
 
 
-void print_num_5x3_at (int x, int y, int number, int length, int pad, char brightness)
+void print_num_5x3_at (int x, int y, int number, int length, int pad, unsigned char brightness)
 {
 
 	char s[10];

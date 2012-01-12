@@ -15,7 +15,7 @@
 static int serial_bridge;
 static int serial_g3d2;
 
-static unsigned char    display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
+static unsigned char	display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 
 static Grid grids[MAX_PLAYERS];
 
@@ -100,7 +100,7 @@ int button_down(unsigned int nr, unsigned int button) {
 }
 int is_occupied(unsigned int nr) {
 
-	return players[nr].occupied;
+	return players[nr].occupied && strncmp("twobit", (char*)players[nr].nick, 6) != 0;
 
 }
 
@@ -242,13 +242,14 @@ void join(int nr) {
 				players[i].needs_lines = 0; 
 				players[i].last_active = get_time(); 
 				players[i].is_ready_for_text = 0; 
+				players[i].lines = 0; 
 				memcpy(players[i].id, joiners[nr].id, 4);
 				memcpy(players[i].counter, joiners[nr].counter, 4);
 
 				ack_packet.ack.flags = 1;
 
-		    	init_grid(&grids[i], i);
-//    			activate_grid(&grids[i]);
+				init_grid(&grids[i], i);
+//				activate_grid(&grids[i]);
 
 				break;
 			}
@@ -287,7 +288,7 @@ void sendtext(int nr) {
 		text_packet.text.y=15;
 		text_packet.text.flags=0;
 	
-		sprintf(text_packet.text.text, "Lines %i", players[nr].lines);
+		snprintf((char*)text_packet.text.text, 16, "Lines %i", players[nr].lines);
 	}
 	
 	send_packet(&text_packet);
@@ -430,17 +431,17 @@ int main(int argc, char *argv[]) {
 	unsigned long long tetris_time = time;
 	int state = STATE_INIT_PACKETLEN;
 
-    for(i = 0; i < MAX_PLAYERS; i++) {
-    	init_grid(&grids[i], i);
-//    	activate_grid(&grids[i]);
-    }
-    
-    int running = 1;
-    while(running) {
-
+	for(i = 0; i < MAX_PLAYERS; i++) {
+		init_grid(&grids[i], i);
+//		activate_grid(&grids[i]);
+	}
+	
+	int running = 1;
+	while(running) {
+		
 		// read input
 		while(read(serial_bridge, &byte, 1) == 1) {
-			//printf("    read %3d %c pos %d\n", byte, byte, pos);
+			//printf("	read %3d %c pos %d\n", byte, byte, pos);
 			if(!esc && byte == CMD_ESC) {
 				esc = 1;
 				continue;
@@ -472,14 +473,15 @@ int main(int argc, char *argv[]) {
 
 			for(i = 0; i < MAX_PLAYERS; i++) {
 				update_grid(&grids[i]);
-				draw_grid(&grids[i]);	
+				draw_grid(&grids[i]);
+//				printf("tick\n");
 			}
 			push_frame_buffer();
 
 		}
 
 		if(cmd_block) continue;
-
+		
 		switch(state) {
 		case STATE_INIT_PACKETLEN:
 			set_packetlen(32);
@@ -519,18 +521,20 @@ int main(int argc, char *argv[]) {
 			// check for deactive players
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if(players[i].occupied) {
-					if((get_time() - players[i].last_active) > 10000 )
-					{
-						players[i].occupied=0;
-						players[i].id[0]=0;
-						players[i].id[1]=0;
-						players[i].id[2]=0;
-						players[i].id[3]=0;
+					if((get_time() - players[i].last_active) > 10000) {
+						player_gameover(i);
 
-				    	init_grid(&grids[i], i);
-//    					activate_grid(&grids[i]);
+						players[i].occupied = 0;
+						players[i].id[0] = 0;
+						players[i].id[1] = 0;
+						players[i].id[2] = 0;
+						players[i].id[3] = 0;
+						players[i].lines = 0;
+
+						init_grid(&grids[i], i);
+//						activate_grid(&grids[i]);
 						
-					};
+					}
 
 				}
 			}
@@ -653,37 +657,37 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-    return 0;
+	return 0;
 }
 
 
 // found it in the internet...
 static unsigned int my_rand(void) {
-    static unsigned int z1 = 12345, z2 = 12345, z3 = 12345, z4 = 12345;
-    unsigned int b;
-    b  = ((z1 << 6) ^ z1) >> 13;
-    z1 = ((z1 & 4294967294U) << 18) ^ b;
-    b  = ((z2 << 2) ^ z2) >> 27;
-    z2 = ((z2 & 4294967288U) << 2) ^ b;
-    b  = ((z3 << 13) ^ z3) >> 21;
-    z3 = ((z3 & 4294967280U) << 7) ^ b;
-    b  = ((z4 << 3) ^ z4) >> 12;
-    z4 = ((z4 & 4294967168U) << 13) ^ b;
-    return (z1 ^ z2 ^ z3 ^ z4);
+	static unsigned int z1 = 12345, z2 = 12345, z3 = 12345, z4 = 12345;
+	unsigned int b;
+	b  = ((z1 << 6) ^ z1) >> 13;
+	z1 = ((z1 & 4294967294U) << 18) ^ b;
+	b  = ((z2 << 2) ^ z2) >> 27;
+	z2 = ((z2 & 4294967288U) << 2) ^ b;
+	b  = ((z3 << 13) ^ z3) >> 21;
+	z3 = ((z3 & 4294967280U) << 7) ^ b;
+	b  = ((z4 << 3) ^ z4) >> 12;
+	z4 = ((z4 & 4294967168U) << 13) ^ b;
+	return (z1 ^ z2 ^ z3 ^ z4);
 }
 
 unsigned int rand_int(unsigned int limit) {
-    return my_rand() % limit;
+	return my_rand() % limit;
 }
 
 
 void pixel(int x, int y, unsigned char color) {
-    assert(x < DISPLAY_WIDTH);
-    assert(y < DISPLAY_HEIGHT);
-    assert(color < 16);
-    if(display[y][x] != color) {
-        display[y][x] = color;
-        
+	assert(x < DISPLAY_WIDTH);
+	assert(y < DISPLAY_HEIGHT);
+	assert(color < 16);
+	if(display[y][x] != color) {
+		display[y][x] = color;
+		
 		y = 31 - y;
 
 		unsigned char c = 104;
@@ -701,19 +705,18 @@ void pixel(int x, int y, unsigned char color) {
 		c=color;
 		write(serial_g3d2, &c, 1);
 		usleep(200);
-        
-    }
+		
+	}
 }
 
 void set_frame_buffer(int x, int y, unsigned char color) {
-    assert(x < DISPLAY_WIDTH);
-    assert(y < DISPLAY_HEIGHT);
-    assert(color < 16);
+	assert(x < DISPLAY_WIDTH);
+	assert(y < DISPLAY_HEIGHT);
+	assert(color < 16);
 	display[y][x] = color;
 }
 
 void push_frame_buffer() {
-//	y = 31 - y;
 
 	unsigned char c = 103;
 	write(serial_g3d2, &c, 1);
@@ -743,3 +746,14 @@ void push_frame_buffer() {
 //	usleep(2000);
 
 }
+
+
+void player_gameover(unsigned int nr) {
+	Player* p = &players[nr];
+	if(p->occupied && p->lines > 0) {
+		FILE* highscore = fopen("highscore", "a");
+		fprintf(highscore, "%-20s%3d\n", p->nick, p->lines);
+		fclose(highscore);
+	}
+}
+

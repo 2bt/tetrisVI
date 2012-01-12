@@ -132,5 +132,6 @@ unsigned int rand_int(unsigned int limit);
 void pixel(int x, int y, unsigned char color);
 void set_frame_buffer(int x, int y, unsigned char color);
 void push_frame_buffer(void);
+void player_gameover(unsigned int nr);
 
 #endif

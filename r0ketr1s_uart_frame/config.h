@@ -1,8 +1,8 @@
 
 enum {
 	ANNOUNCE_CHANNEL1	= 87,
-	ANNOUNCE_CHANNEL2	= 81,
-	GAME_CHANNEL		= 83,
+	ANNOUNCE_CHANNEL2	= 87,
+	GAME_CHANNEL		= 85,
 };
 
 const unsigned char announce_addr[5] = { 'R', 'E', 'M', '0', 'T' };

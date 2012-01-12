@@ -378,6 +378,7 @@ static void update_grid_gameover(Grid* grid) {
 	}
 
 	if(++grid->state_delay > 25) {
+		player_gameover(grid->nr);
 		init_grid(grid, grid->nr);
 	}
 }
