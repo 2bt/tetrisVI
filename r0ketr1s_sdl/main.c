@@ -170,7 +170,7 @@ void prepare_announce() {
 
 void announce() {
 	unsigned char* c = (unsigned char*)&announce_packet.counter;
-	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {}
+	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {} // increment counter
 	send_packet(&announce_packet);
 }
 
@@ -431,8 +431,7 @@ int main(int argc, char *argv[]) {
 	unsigned long long tetris_time = time;
 	int state = STATE_INIT_PACKETLEN;
 
-    for(i = 0; i < MAX_PLAYERS; i++)
-    {
+    for(i = 0; i < MAX_PLAYERS; i++) {
     	init_grid(&grids[i], i);
 //    	activate_grid(&grids[i]);
     }
@@ -548,8 +547,7 @@ int main(int argc, char *argv[]) {
 			// check for deactive players
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if(players[i].occupied) {
-					if((get_time() - players[i].last_active) > 10000 )
-					{
+					if((get_time() - players[i].last_active) > 10000) {
 						players[i].occupied=0;
 						players[i].id[0]=0;
 						players[i].id[1]=0;
@@ -559,7 +557,7 @@ int main(int argc, char *argv[]) {
 				    	init_grid(&grids[i], i);
 //    					activate_grid(&grids[i]);
 						
-					};
+					}
 
 				}
 			}
