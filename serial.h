@@ -85,7 +85,7 @@ struct Packet {
 } PACK;
 
 
-void init_serial(const unsigned char *new_rx_addr, unsigned char default_channel);
+void init_serial(const char *dev, const unsigned char *new_rx_addr, unsigned char default_channel);
 void seriel_receive();
 int serial_do_work(); // return whether we are idle
 void queue_packet(struct Packet *p, unsigned char chan, const unsigned char *addr); // set channel and MAC and then send the given packet

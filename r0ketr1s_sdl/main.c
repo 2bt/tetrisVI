@@ -36,10 +36,9 @@ typedef struct {
 typedef struct {
 	int occupied;
 	// stuff to be sent to player. priority: text, lines, state
-	int needs_text; // "Player <n>"
+	int needs_title; // "Player <n>"
 	int needs_lines; // will never actually be set at the same time as needs_text (text is sent just once at the beginning)
 	int needs_gamestate;
-	int ready_to_send; // set to 0 after sending data, before we got an ack
 	// player state
 	int button_state;
 	long long last_active;
@@ -85,11 +84,6 @@ void push_lines(unsigned int nr, unsigned int lines) {
 	players[nr].needs_lines = 1;
 }
 
-int wants_to_send_data(Player *p) {
-	return p->occupied && (p->needs_text || p->needs_lines || p->needs_gamestate);
-}
-
-
 
 void announce() {
 	struct Packet *announce_packet = new_packet('A');
@@ -127,10 +121,9 @@ void join(int nr) {
 			if(!players[i].occupied) {
 				printf("player %i added\n",i);
 				players[i].occupied = 1;
-				players[i].needs_text = 1; 
+				players[i].needs_title = 1; 
 				players[i].needs_lines = 0;
 				players[i].needs_gamestate = 0;
-				players[i].ready_to_send = 1;
 				players[i].last_active = get_time();
 				players[i].id = joiners[nr].id;
 
@@ -154,31 +147,30 @@ void nickrequest(int nr) {
 	queue_packet(nickrequest_packet, GAME_CHANNEL, game_send_addr);
 }
 
-void sendtext(int nr) {
+void sendtitle(int nr) {
 	struct Packet *text_packet = new_packet('T');
 	text_packet->id = players[nr].id;
-	
 
+	text_packet->text.x=1;
+	text_packet->text.y=1;
+	text_packet->text.flags=1; // clear screen before printing
 
-	if(players[nr].needs_text)
-	{
-		text_packet->text.x=1;
-		text_packet->text.y=1;
-		text_packet->text.flags=1; // clear screen before printing
-	
-		memcpy(text_packet->text.text, "Player ", 7);
-		text_packet->text.text[7] = 49 + nr;
-	}
-	
-	else if(players[nr].needs_lines)
-	{
-		text_packet->text.x=1;
-		text_packet->text.y=15;
-		text_packet->text.flags=0;
-	
-		sprintf((char*)text_packet->text.text, "Lines %i   ", grids[nr].lines);
-	}
-	
+	memcpy(text_packet->text.text, "Player ", 7);
+	text_packet->text.text[7] = '0' + nr; // add the actual number
+
+	queue_packet(text_packet, GAME_CHANNEL, game_send_addr);
+}
+
+void sendlines(int nr) {
+	struct Packet *text_packet = new_packet('T');
+	text_packet->id = players[nr].id;
+
+	text_packet->text.x=1;
+	text_packet->text.y=15;
+	text_packet->text.flags=0;
+
+	sprintf((char*)text_packet->text.text, "Lines %i   ", grids[nr].lines);
+
 	queue_packet(text_packet, GAME_CHANNEL, game_send_addr);
 }
 
@@ -228,7 +220,7 @@ void process_packet(struct Packet* packet) {
 
 		case 'B':
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(players[i].id == packet->id) {
+				if(players[i].occupied && players[i].id == packet->id) {
 					players[i].last_active = get_time();
 					players[i].button_state = packet->button.state;
 					
@@ -251,14 +243,11 @@ void process_packet(struct Packet* packet) {
 
 		case 'a':
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(players[i].id == packet->id) { // we got an ack for this player and assume all is fine
-					if (players[i].needs_text)
-						players[i].needs_text = 0; 
-					else if (players[i].needs_lines)
-						players[i].needs_lines = 0;
+				if(players[i].occupied && players[i].id == packet->id) { // we got an ack for this player and assume all is fine
+					if (players[i].needs_title)
+						players[i].needs_title = 0; 
 					else
-						players[i].needs_gamestate = 0;
-					players[i].ready_to_send = 1;
+						players[i].needs_lines = 0;
 					break;
 				}
 			}
@@ -300,9 +289,8 @@ int main(int argc, char *argv[]) {
 		SDL_MapRGB(screen->format, 0x00,0xff,0x00)
 	};
 
-	puts("main");
-	init_serial(game_receive_addr, GAME_CHANNEL);
-	puts("initilaized");
+	init_serial("/dev/ttyACM0", game_receive_addr, GAME_CHANNEL);
+	puts("Serial device successfully initilaized");
 
 	memcpy(game_send_addr, game_receive_addr, 5);
 	game_send_addr[4]++;
@@ -401,13 +389,25 @@ int main(int argc, char *argv[]) {
 
 			// check whether anybody should get text
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if(players[i].ready_to_send && wants_to_send_data(&players[i])) {
-					if (players[i].needs_text || players[i].needs_lines)
-						sendtext(i);
-					else
+				if (players[i].occupied) {
+					if (players[i].needs_title) {
+						printf("Sending title to %d\n", i);
+						sendtitle(i);
+						// we expect an ack
+						break;
+					}
+					else if (players[i].needs_lines) {
+						printf("Sending lines to %d\n", i);
+						sendlines(i);
+						// we expect an ack
+						break;
+					}
+					else if (players[i].needs_gamestate) {
+						printf("Sending state to %d\n", i);
 						sendstate(i);
-					players[i].ready_to_send = 0;
-					break;
+						players[i].needs_gamestate = 0;
+						break;
+					}
 				}
 			}
 			if(i != MAX_PLAYER) continue;

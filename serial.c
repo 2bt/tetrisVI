@@ -62,9 +62,12 @@ static void print_time() {
 }
 
 //// Initialization
-void init_serial(const unsigned char *new_rx_addr, unsigned char default_channel) {
-	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
-	assert(serial != -1);
+void init_serial(const char *dev, const unsigned char *new_rx_addr, unsigned char default_channel) {
+	serial = open(dev, O_RDWR | O_NONBLOCK);
+	if(serial < 0) {
+		fprintf(stderr, "Failed opening the serial device %s\n", dev);
+		abort();
+	}
 
 	struct termios config;
 	memset(&config, 0, sizeof(config));
