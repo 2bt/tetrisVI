@@ -12,12 +12,12 @@
 
 
 enum {
-    DISPLAY_WIDTH = 72,
-    DISPLAY_HEIGHT = 32
+	DISPLAY_WIDTH = 72,
+	DISPLAY_HEIGHT = 32
 };
 
 enum {
-    MAX_PLAYERS = 6
+	MAX_PLAYERS = 6
 };
 
 
@@ -236,32 +236,32 @@ void process_packet(struct Packet* packet) {
 }
 
 int main(int argc, char *argv[]) {
-    srand(SDL_GetTicks());
-    
+	srand(SDL_GetTicks());
+	
 
-    SDL_Surface* screen = SDL_SetVideoMode(
-        DISPLAY_WIDTH * ZOOM,
-        DISPLAY_HEIGHT * ZOOM,
-        32, SDL_SWSURFACE | SDL_DOUBLEBUF);
+	SDL_Surface* screen = SDL_SetVideoMode(
+		DISPLAY_WIDTH * ZOOM,
+		DISPLAY_HEIGHT * ZOOM,
+		32, SDL_SWSURFACE | SDL_DOUBLEBUF);
 
-    const unsigned int COLORS[] = {
-        SDL_MapRGB(screen->format, 0x00,0x10,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x20,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x30,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x40,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x50,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x60,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x70,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x80,0x00),
-        SDL_MapRGB(screen->format, 0x00,0x90,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xa0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xb0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xc0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xd0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xe0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xf0,0x00),
-        SDL_MapRGB(screen->format, 0x00,0xff,0x00)
-    };
+	const unsigned int COLORS[] = {
+		SDL_MapRGB(screen->format, 0x00,0x10,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x20,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x30,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x40,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x50,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x60,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x70,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x80,0x00),
+		SDL_MapRGB(screen->format, 0x00,0x90,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xa0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xb0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xc0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xd0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xe0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xf0,0x00),
+		SDL_MapRGB(screen->format, 0x00,0xff,0x00)
+	};
 
 	puts("main");
 	init_serial(game_receive_addr, GAME_CHANNEL);
@@ -278,12 +278,12 @@ int main(int argc, char *argv[]) {
 	unsigned long long announce_time = time;
 	unsigned long long tetris_time = time;
 
-    for(i = 0; i < MAX_PLAYERS; i++) {
-    	init_grid(&grids[i], i);
-    }
-    
-    int running = 1;
-    while(running) {
+	for(i = 0; i < MAX_PLAYERS; i++) {
+		init_grid(&grids[i], i);
+	}
+	
+	int running = 1;
+	while(running) {
 
 		// read SDL input
 		SDL_Event ev;
@@ -349,7 +349,7 @@ int main(int argc, char *argv[]) {
 						players[i].occupied=0;
 						players[i].id=0;
 
-				    	init_grid(&grids[i], i);
+						init_grid(&grids[i], i);
 						
 					}
 				}
@@ -384,30 +384,30 @@ int main(int argc, char *argv[]) {
 
 // found it in the internet...
 static unsigned int my_rand(void) {
-    static unsigned int z1 = 12345, z2 = 12345, z3 = 12345, z4 = 12345;
-    unsigned int b;
-    b  = ((z1 << 6) ^ z1) >> 13;
-    z1 = ((z1 & 4294967294U) << 18) ^ b;
-    b  = ((z2 << 2) ^ z2) >> 27;
-    z2 = ((z2 & 4294967288U) << 2) ^ b;
-    b  = ((z3 << 13) ^ z3) >> 21;
-    z3 = ((z3 & 4294967280U) << 7) ^ b;
-    b  = ((z4 << 3) ^ z4) >> 12;
-    z4 = ((z4 & 4294967168U) << 13) ^ b;
-    return (z1 ^ z2 ^ z3 ^ z4);
+	static unsigned int z1 = 12345, z2 = 12345, z3 = 12345, z4 = 12345;
+	unsigned int b;
+	b  = ((z1 << 6) ^ z1) >> 13;
+	z1 = ((z1 & 4294967294U) << 18) ^ b;
+	b  = ((z2 << 2) ^ z2) >> 27;
+	z2 = ((z2 & 4294967288U) << 2) ^ b;
+	b  = ((z3 << 13) ^ z3) >> 21;
+	z3 = ((z3 & 4294967280U) << 7) ^ b;
+	b  = ((z4 << 3) ^ z4) >> 12;
+	z4 = ((z4 & 4294967168U) << 13) ^ b;
+	return (z1 ^ z2 ^ z3 ^ z4);
 }
 
 unsigned int rand_int(unsigned int limit) {
-    return my_rand() % limit;
+	return my_rand() % limit;
 }
 
 
 void set_frame_buffer(int x, int y, unsigned char color) {
-    assert(x < DISPLAY_WIDTH);
-    assert(y < DISPLAY_HEIGHT);
-    assert(color < 16);
-    if(display[y][x] != color) {
-        rerender = 1;
-        display[y][x] = color;
-    }
+	assert(x < DISPLAY_WIDTH);
+	assert(y < DISPLAY_HEIGHT);
+	assert(color < 16);
+	if(display[y][x] != color) {
+		rerender = 1;
+		display[y][x] = color;
+	}
 }
