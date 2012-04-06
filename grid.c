@@ -200,13 +200,15 @@ static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 		grid_bot(grid, mov, rot, drop);
 	}
 
+	// repeat mov event every 6 frames if button keeps getting pressed
 	if(*mov != grid->input_mov) grid->input_rep = 0;
 	grid->input_mov = *mov;
-	if(grid->input_rep <= 0) grid->input_rep = 6;
+	if(grid->input_rep <= 0) grid->input_rep = 6; // actually input_rep can never be less than 0
 	else {
 		grid->input_rep--;
 		*mov = 0;
 	}
+	// do not keep rotating if the rot button keeps getting pressed
 	if(*rot != grid->input_rot) grid->input_rot = *rot;
 	else *rot = 0;
 }

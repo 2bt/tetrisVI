@@ -41,12 +41,11 @@ typedef struct {
 	int needs_gamestate;
 	int ready_to_send; // set to 0 after sending data, before we got an ack
 	// player state
-	int lines;
 	int button_state;
 	long long last_active;
 	unsigned int id;
 	//unsigned char counter[4];
-	unsigned char nick[18];
+	//unsigned char nick[18];
 	// also other stuff here ...
 
 } Player;
@@ -78,15 +77,12 @@ int button_down(unsigned int nr, unsigned int button) {
 	return (((players[nr].button_state)&(1<<button))==(1<<button));
 }
 int is_occupied(unsigned int nr) {
-
 	return players[nr].occupied;
-
 }
 void player_gameover(unsigned int nr) {}
 
 void push_lines(unsigned int nr, unsigned int lines) {
 	players[nr].needs_lines = 1;
-	players[nr].lines = lines;
 }
 
 int wants_to_send_data(Player *p) {
@@ -180,7 +176,7 @@ void sendtext(int nr) {
 		text_packet->text.y=15;
 		text_packet->text.flags=0;
 	
-		sprintf((char*)text_packet->text.text, "Lines %i   ", players[nr].lines);
+		sprintf((char*)text_packet->text.text, "Lines %i   ", grids[nr].lines);
 	}
 	
 	queue_packet(text_packet, GAME_CHANNEL, game_send_addr);
@@ -388,12 +384,8 @@ int main(int argc, char *argv[]) {
 				if(players[i].occupied) {
 					if((get_time() - players[i].last_active) > 10000) {
 						players[i].occupied=0;
-						players[i].id=0;
-
 						init_grid(&grids[i], i);
-						
 					}
-
 				}
 			}
 
