@@ -35,9 +35,10 @@ typedef struct {
 
 typedef struct {
 	int occupied;
-	// stuff to be sent to player. priority: text, lines
+	// stuff to be sent to player. priority: text, lines, state
 	int needs_text; // "Player <n>"
 	int needs_lines; // will never actually be set at the same time as needs_text (text is sent just once at the beginning)
+	int needs_gamestate;
 	int ready_to_send; // set to 0 after sending data, before we got an ack
 	// player state
 	int lines;
@@ -45,7 +46,7 @@ typedef struct {
 	long long last_active;
 	unsigned int id;
 	//unsigned char counter[4];
-	//unsigned char nick[18];
+	unsigned char nick[18];
 	// also other stuff here ...
 
 } Player;
@@ -53,6 +54,21 @@ typedef struct {
 enum {
 	MAX_JOINER = 32,
 	MAX_PLAYER = 6,
+};
+
+enum {
+	DATA_X = 0,
+	DATA_Y,
+	DATA_STONE,
+	DATA_ROT,
+	DATA_STONE_ID,
+	DATA_GAME_ID,
+	DATA_LAST_X,
+	DATA_LAST_Y,
+	DATA_LAST_STONE,
+	DATA_LAST_ROT,
+	DATA_NEXT_STONE,
+	DATA_NEXT_ROT
 };
 
 Joiner joiners[MAX_JOINER];
@@ -69,14 +85,14 @@ int is_occupied(unsigned int nr) {
 void player_gameover(unsigned int nr) {}
 
 void push_lines(unsigned int nr, unsigned int lines) {
-
 	players[nr].needs_lines = 1;
 	players[nr].lines = lines;
 }
 
 int wants_to_send_data(Player *p) {
-	return p->occupied && (p->needs_text || p->needs_lines);
+	return p->occupied && (p->needs_text || p->needs_lines || p->needs_gamestate);
 }
+
 
 
 void announce() {
@@ -109,7 +125,7 @@ void join(int nr) {
 			}
 		}
 	}
-	if(i == MAX_PLAYER)	{
+	if(i == MAX_PLAYER)	{ // not already joined
 
 		for(i = 0; i < MAX_PLAYER; i++) {
 			if(!players[i].occupied) {
@@ -117,6 +133,7 @@ void join(int nr) {
 				players[i].occupied = 1;
 				players[i].needs_text = 1; 
 				players[i].needs_lines = 0;
+				players[i].needs_gamestate = 0;
 				players[i].ready_to_send = 1;
 				players[i].last_active = get_time();
 				players[i].id = joiners[nr].id;
@@ -167,6 +184,27 @@ void sendtext(int nr) {
 	}
 	
 	queue_packet(text_packet, GAME_CHANNEL, game_send_addr);
+}
+
+void sendstate(int nr) {
+	struct Packet *blob_packet = new_packet('b');
+	blob_packet->id = players[nr].id;
+
+	blob_packet->blob.data[DATA_X]=grids[nr].x;
+	blob_packet->blob.data[DATA_Y]=grids[nr].y;
+	blob_packet->blob.data[DATA_STONE]=grids[nr].stone;
+	blob_packet->blob.data[DATA_ROT]=grids[nr].rot;
+	blob_packet->blob.data[DATA_STONE_ID]=grids[nr].stone_count;
+	blob_packet->blob.data[DATA_GAME_ID]=grids[nr].game_id;
+	blob_packet->blob.data[DATA_LAST_X]=grids[nr].last_x;
+	blob_packet->blob.data[DATA_LAST_Y]=grids[nr].last_y;
+	blob_packet->blob.data[DATA_LAST_STONE]=grids[nr].last_stone;
+	blob_packet->blob.data[DATA_LAST_ROT]=grids[nr].last_rot;
+	blob_packet->blob.data[DATA_NEXT_STONE]=grids[nr].next_stone;
+	blob_packet->blob.data[DATA_NEXT_ROT]=grids[nr].next_rot;
+	
+	
+	queue_packet(blob_packet, GAME_CHANNEL, game_send_addr);
 }
 
 
@@ -220,8 +258,10 @@ void process_packet(struct Packet* packet) {
 				if(players[i].id == packet->id) { // we got an ack for this player and assume all is fine
 					if (players[i].needs_text)
 						players[i].needs_text = 0; 
-					else
+					else if (players[i].needs_lines)
 						players[i].needs_lines = 0;
+					else
+						players[i].needs_gamestate = 0;
 					players[i].ready_to_send = 1;
 					break;
 				}
@@ -237,6 +277,7 @@ void process_packet(struct Packet* packet) {
 
 int main(int argc, char *argv[]) {
 	srand(SDL_GetTicks());
+	memset(players, 0, sizeof(players));
 	
 
 	SDL_Surface* screen = SDL_SetVideoMode(
@@ -266,7 +307,6 @@ int main(int argc, char *argv[]) {
 	puts("main");
 	init_serial(game_receive_addr, GAME_CHANNEL);
 	puts("initilaized");
-
 
 	memcpy(game_send_addr, game_receive_addr, 5);
 	game_send_addr[4]++;
@@ -310,14 +350,16 @@ int main(int argc, char *argv[]) {
 
 		// update screen
 		unsigned long long new_time = get_time();
-
 		if(new_time - tetris_time > 20) {
 
 			tetris_time = new_time;
 
 			for(i = 0; i < MAX_PLAYERS; i++) {
-				update_grid(&grids[i]);
+				int updt = update_grid(&grids[i]);
 				draw_grid(&grids[i]);
+				if (updt && players[i].occupied) {
+					players[i].needs_gamestate = 1;
+				}
 			}
 
 			if(rerender) {
@@ -330,7 +372,6 @@ int main(int argc, char *argv[]) {
 				SDL_Flip(screen);
 			}
 		}
-
 
 		if (serial_do_work()) {
 			// we are idle
@@ -352,6 +393,7 @@ int main(int argc, char *argv[]) {
 						init_grid(&grids[i], i);
 						
 					}
+
 				}
 			}
 
@@ -368,12 +410,16 @@ int main(int argc, char *argv[]) {
 			// check whether anybody should get text
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if(players[i].ready_to_send && wants_to_send_data(&players[i])) {
-					sendtext(i);
+					if (players[i].needs_text || players[i].needs_lines)
+						sendtext(i);
+					else
+						sendstate(i);
 					players[i].ready_to_send = 0;
 					break;
 				}
 			}
 			if(i != MAX_PLAYER) continue;
+
 		}
 	}
 

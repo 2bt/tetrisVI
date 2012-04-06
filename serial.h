@@ -6,20 +6,20 @@
 
 enum {
 	CMD_ESC			= 92,
-	CMD_END			= 48,
-	CMD_PACKET		= 49,
-	CMD_OK			= 50,
-	CMD_TX_MAC		= 51,
-	CMD_RX_MAC		= 52,
-	CMD_CHAN		= 53,
-	CMD_PACKETLEN	= 54,
+	CMD_END			= 48,//  '0'
+	CMD_PACKET		= 49,//  '1'
+	CMD_OK			= 50,//  '2'
+	CMD_TX_MAC		= 51,//  '3'
+	CMD_RX_MAC		= 52,//  '4'
+	CMD_CHAN		= 53,//  '5'
+	CMD_PACKETLEN	= 54,//  '6'
 };
 
 struct Packet {
 	// 11 common bytes
 	unsigned char len;			// 32
 	unsigned char protocol;		// 'G'
-	unsigned char command;		// 'A'nounce 'J'oin 'a'ck 'B'utton ...
+	unsigned char command;		// 'A'nounce 'J'oin 'a'ck 'B'utton ... 'b'lob
 	unsigned int id;
 	unsigned int counter;	// network byte order
 
@@ -73,6 +73,10 @@ struct Packet {
 			unsigned char flags; 
 			unsigned char text[16];
 		} PACK text;
+
+		struct {
+			unsigned char data[19];
+		} PACK blob;
 
 	};
 
