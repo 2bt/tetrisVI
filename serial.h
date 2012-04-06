@@ -1,7 +1,6 @@
-#ifndef MAIN_H_
-#define MAIN_H_
+#ifndef SERIAL_H_
+#define SERIAL_H_
 
-#include "ui.h"
 
 #define PACK __attribute__((packed))
 
@@ -16,13 +15,13 @@ enum {
 	CMD_PACKETLEN	= 54,
 };
 
-typedef struct {
+struct Packet {
 	// 11 common bytes
 	unsigned char len;			// 32
 	unsigned char protocol;		// 'G'
 	unsigned char command;		// 'A'nounce 'J'oin 'a'ck 'B'utton ...
-	unsigned char id[4];
-	unsigned char counter[4];	// network byte order
+	unsigned int id;
+	unsigned int counter;	// network byte order
 
 	union {
 		struct {
@@ -79,39 +78,14 @@ typedef struct {
 
 	unsigned char crc[2];
 
-} PACK Packet;
-
-enum {
-	STATE_INIT_PACKETLEN,
-	STATE_INIT_RX_MAC,
-	STATE_INIT_TX_MAC,
-	STATE_INIT_CHAN,
-	STATE_IDLE,
-	STATE_ANNOUNCE_CHAN,
-	STATE_ANNOUNCE_ANNOUNCE,
-	STATE_ANNOUNCE_RESTORE_CHAN,
-	STATE_JOIN_ACK_TX_MAC,
-	STATE_JOIN_ACK_ACK,
-	STATE_JOIN_ACK_RESTORE_TX_MAC,
-	STATE_NICKREQUEST_TX_MAC,
-	STATE_NICKREQUEST_NICKREQUEST,
-	STATE_NICKREQUEST_RESTORE_TX_MAC,
-	STATE_TEXT_TX_MAC,
-	STATE_TEXT_TEXT,
-	STATE_TEXT_RESTORE_TX_MAC,
-};
+} PACK;
 
 
-
-
-enum {
-    DISPLAY_WIDTH = 72,
-    DISPLAY_HEIGHT = 32
-};
-
-enum {
-    MAX_PLAYERS = 6
-};
+void init_serial(const unsigned char *new_rx_addr, unsigned char default_channel);
+void seriel_receive();
+int serial_do_work(); // return whether we are idle
+void queue_packet(struct Packet *p, unsigned char chan, const unsigned char *addr); // set channel and MAC and then send the given packet
+struct Packet *new_packet(unsigned char command);
 
 
 #endif

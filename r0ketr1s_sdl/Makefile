@@ -5,7 +5,7 @@ SRC+= sdl_draw/SDL_draw.c
 SRC+= pixelfonts/5x3/font.c
 SRC+= $(wildcard libs/*.c)
 
-FLAGS = -Wall -O2 
+FLAGS = -Wall -O2 -g
 
 
 ifeq ($(UNAME), Darwin)
