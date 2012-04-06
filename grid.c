@@ -240,7 +240,7 @@ static int update_grid_normal(Grid* grid) {
 
 	// vertical movement
 	grid->tick++;
-	if(drop || grid->tick >= grid->ticks_per_drop) {
+	if(grid->tick >= grid->ticks_per_drop || (drop && grid->tick >= grid->ticks_per_drop/4)) {
 		grid->tick = 0;
 		grid->y++;
 		change = 1;

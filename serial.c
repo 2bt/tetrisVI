@@ -17,7 +17,7 @@
 // enable/disable debugging on command level
 //#define CMD_DEBUG
 // enable/disable debugging on packet lavel
-#define PACKET_DEBUG
+//#define PACKET_DEBUG
 
 /*
  * This implements the lower levels of package sending, and it hides all the actual

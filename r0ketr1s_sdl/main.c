@@ -73,7 +73,7 @@ Joiner joiners[MAX_JOINER];
 Player players[MAX_PLAYER];
 
 int button_down(unsigned int nr, unsigned int button) {
-	return (((players[nr].button_state)&(1<<button))==(1<<button));
+	return ((players[nr].button_state) & (1<<button)) != 0;
 }
 int is_occupied(unsigned int nr) {
 	return players[nr].occupied;
@@ -391,19 +391,16 @@ int main(int argc, char *argv[]) {
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if (players[i].occupied) {
 					if (players[i].needs_title) {
-						printf("Sending title to %d\n", i);
 						sendtitle(i);
 						// we expect an ack
 						break;
 					}
 					else if (players[i].needs_lines) {
-						printf("Sending lines to %d\n", i);
 						sendlines(i);
 						// we expect an ack
 						break;
 					}
 					else if (players[i].needs_gamestate) {
-						printf("Sending state to %d\n", i);
 						sendstate(i);
 						players[i].needs_gamestate = 0;
 						break;
