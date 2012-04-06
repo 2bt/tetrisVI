@@ -213,8 +213,8 @@ static void get_grid_input(Grid* grid, int* mov, int* rot, int* drop) {
 
 
 
-static void update_grid_normal(Grid* grid) {
-	int i, x, y;
+static int update_grid_normal(Grid* grid) {
+	int i, x, y, change = 0;
 
 	int mov, rot, drop;
 	get_grid_input(grid, &mov, &rot, &drop);
@@ -232,6 +232,7 @@ static void update_grid_normal(Grid* grid) {
 	// horizontal movement
 	i = grid->x;
 	grid->x += mov;
+	if (mov) change = 1;
 	if(i != grid->x && grid_collision(grid, 0)) grid->x = i;
 
 
@@ -240,6 +241,7 @@ static void update_grid_normal(Grid* grid) {
 	if(drop || grid->tick >= grid->ticks_per_drop) {
 		grid->tick = 0;
 		grid->y++;
+		change = 1;
 		if(grid_collision(grid, 0)) {
 			grid->y--;
 
@@ -253,10 +255,14 @@ static void update_grid_normal(Grid* grid) {
 
 			stone_to_grid(grid, grid->stone + 1);
 
-			if(over) return;
+			if(over) return 1;
 
 
 			// get a new stone
+			grid->last_x = grid->x;
+			grid->last_y = grid->y;
+			grid->last_stone = grid->stone;
+			grid->last_rot = grid->rot;
 			new_stone(grid);
 
 			// check for complete lines
@@ -273,6 +279,7 @@ static void update_grid_normal(Grid* grid) {
 			grid->state_delay = 0;
 		}
 	}
+	return change;
 }
 
 
@@ -404,6 +411,7 @@ void init_grid(Grid* grid, int nr) {
 			set_frame_buffer(grid->nr * 12 + x, y, 0);
 		}
 	}
+	++grid->game_id;
 }
 
 int activate_grid(Grid* grid) {
@@ -415,29 +423,28 @@ int activate_grid(Grid* grid) {
 }
 
 
-void update_grid(Grid* grid) {
+int update_grid(Grid* grid) {
 	switch(grid->state) {
 	case STATE_FREE:
 		update_grid_free(grid);
-		break;
+		return 0;
 
 	case STATE_NORMAL:
-		update_grid_normal(grid);
-		break;
+		return update_grid_normal(grid);
 
 	case STATE_WAIT:
 		update_grid_wait(grid);
-		break;
+		return 0;
 
 	case STATE_CLEARLINES:
 		update_grid_clearlines(grid);
-		break;
+		return 0;
 
 	case STATE_GAMEOVER:
 		update_grid_gameover(grid);
-		break;
+		return 0;
 
-	default: break;
+	default: return 0;
 
 	}
 }

@@ -32,12 +32,13 @@ typedef struct {
 
 typedef struct {
 	int occupied;
-	int request_nick;
-	int is_ready_for_nick;
-	int needs_text;
-	int needs_lines;
+	// stuff to be sent to player. priority: text, lines, state
+	int needs_text; // "Player <n>"
+	int needs_lines; // will never actually be set at the same time as needs_text (text is sent just once at the beginning)
+	int needs_gamestate;
+	int ready_to_send; // set to 0 after sending data, before we got an ack
+	// player state
 	int lines;
-	int is_ready_for_text;
 	int button_state;
 	long long last_active;
 	unsigned char id[4];
@@ -52,14 +53,27 @@ enum {
 	MAX_PLAYER = 6,
 };
 
+enum {
+	DATA_X = 0,
+	DATA_Y,
+	DATA_STONE,
+	DATA_ROT,
+	DATA_STONE_ID,
+	DATA_GAME_ID,
+	DATA_LAST_X,
+	DATA_LAST_Y,
+	DATA_LAST_STONE,
+	DATA_LAST_ROT,
+	DATA_NEXT_STONE,
+	DATA_NEXT_ROT
+};
+
 Joiner joiners[MAX_JOINER];
 Player players[MAX_PLAYER];
 
-
 void init_serial() {
 
-//	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
-	serial = open("/dev/cu.usbmodem5d11", O_RDWR | O_NONBLOCK);
+	serial = open("/dev/ttyACM0", O_RDWR | O_NONBLOCK);
 	assert(serial != -1);
 
 	struct termios config;
@@ -89,33 +103,35 @@ int is_occupied(unsigned int nr) {
 }
 
 void push_lines(unsigned int nr, unsigned int lines) {
-
 	players[nr].needs_lines = 1;
 	players[nr].lines = lines;
+}
+
+int wants_to_send_data(Player *p) {
+	return p->occupied && (p->needs_text || p->needs_lines || p->needs_gamestate);
 }
 
 
 void send_cmd(int cmd, const unsigned char* buffer, int len) {
 
-	printf("send cmd %c len %d\n", cmd, len);
+//	printf("<= send cmd %c\n", cmd);
 
 	static unsigned char magic[4] = { CMD_ESC, 0, CMD_ESC, CMD_END };
 
 	magic[1] = cmd;
-	tcdrain(serial);
 	assert(write(serial, magic, 2) == 2);
+	usleep(250);
 	int i;
 	for(i = 0; i < len; i++) {
-		tcdrain(serial);
 		assert(write(serial, &buffer[i], 1) == 1);
-		if(buffer[i] == 92) {
-			tcdrain(serial);
+		usleep(200);
+		if(buffer[i] == CMD_ESC) {
 			assert(write(serial, &buffer[i], 1) == 1);
+			usleep(200);
 		}
 	}
-	tcdrain(serial);
 	assert(write(serial, magic + 2, 2) == 2);
-	
+	usleep(350);
 }
 
 void set_chan(unsigned char chan) {
@@ -146,18 +162,20 @@ void send_packet(Packet* p) {
 	p->crc[0] = (crc >> 8) & 0xff;
 	p->crc[1] = crc & 0xff;
 
+	
+	printf("<= send packet %c\n", p->command);
 	send_cmd(CMD_PACKET, (unsigned char*)p, sizeof(Packet));
 }
 
 
-Packet announce_packet;
+static Packet announce_packet;
 void prepare_announce() {
 	memset(&announce_packet, 0, sizeof(Packet));
 	announce_packet.len = 32;
 	announce_packet.protocol = 'G';
 
 	announce_packet.command = 'A';
-	memcpy(announce_packet.announce.game_mac, game_addr, 5);
+	memcpy(announce_packet.announce.game_mac, game_receive_addr, 5);
 	announce_packet.announce.game_chan = GAME_CHANNEL;
 	announce_packet.announce.game_id[0] = game_id[0];
 	announce_packet.announce.game_id[1] = game_id[1];
@@ -165,7 +183,7 @@ void prepare_announce() {
 
 	announce_packet.announce.interval = 1;
 	announce_packet.announce.jitter = 6;
-	memcpy(announce_packet.announce.game_name, "tetrisVI", 8);
+	memcpy(announce_packet.announce.game_name, "tetriBot", 8);
 }
 
 void announce() {
@@ -175,7 +193,7 @@ void announce() {
 }
 
 
-Packet ack_packet;
+static Packet ack_packet;
 void prepare_acknowledge() {
 	memset(&ack_packet, 0, sizeof(Packet));
 	ack_packet.len = 32;
@@ -183,7 +201,7 @@ void prepare_acknowledge() {
 	ack_packet.command = 'a';
 }
 
-Packet nickrequest_packet;
+static Packet nickrequest_packet;
 void prepare_nickrequest() {
 	memset(&nickrequest_packet, 0, sizeof(Packet));
 	nickrequest_packet.len = 32;
@@ -191,12 +209,20 @@ void prepare_nickrequest() {
 	nickrequest_packet.command = 'N';
 }
 
-Packet text_packet;
+static Packet text_packet;
 void prepare_text() {
 	memset(&text_packet, 0, sizeof(Packet));
 	text_packet.len = 32;
 	text_packet.protocol = 'G';
 	text_packet.command = 'T';
+}
+
+static Packet blob_packet;
+void prepare_blob() {
+	memset(&blob_packet, 0, sizeof(Packet));
+	blob_packet.len = 32;
+	blob_packet.protocol = 'G';
+	blob_packet.command = 'b';
 }
 
 void join(int nr) {
@@ -214,18 +240,17 @@ void join(int nr) {
 			}
 		}
 	}
-	if(i == MAX_PLAYER)	{
+	if(i == MAX_PLAYER)	{ // not already joined
 
 		for(i = 0; i < MAX_PLAYER; i++) {
 			if(!players[i].occupied) {
 				printf("player %i added\n",i);
 				players[i].occupied = 1;
-				players[i].request_nick = 1;
-				players[i].is_ready_for_nick = 0; 
 				players[i].needs_text = 1; 
-				players[i].needs_lines = 0; 
-				players[i].last_active = get_time(); 
-				players[i].is_ready_for_text = 0; 
+				players[i].needs_lines = 0;
+				players[i].needs_gamestate = 0;
+				players[i].ready_to_send = 0;
+				players[i].last_active = get_time();
 				memcpy(players[i].id, joiners[nr].id, 4);
 				memcpy(players[i].counter, joiners[nr].counter, 4);
 
@@ -237,7 +262,7 @@ void join(int nr) {
 				break;
 			}
 		}
-		if(i == MAX_PLAYER) ack_packet.ack.flags = 0;
+		if(i == MAX_PLAYER) ack_packet.ack.flags = 0; // no free slot
 	}
 
 	send_packet(&ack_packet);
@@ -253,45 +278,67 @@ void
 sendtext(int nr) {
 	memcpy(text_packet.id, players[nr].id, 4);
 	unsigned char* c = (unsigned char*)&text_packet.counter;
-	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {}
+	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {} // increment counter
 
 
 	if(players[nr].needs_text)
 	{
 		text_packet.text.x=1;
 		text_packet.text.y=1;
-		text_packet.text.flags=1;
+		text_packet.text.flags=1; // clear screen before printing
 	
 		memcpy(text_packet.text.text, "Player ", 7);
 		text_packet.text.text[7] = 49 + nr;
 	}
-
-	if(players[nr].needs_lines)
+	
+	else if(players[nr].needs_lines)
 	{
 		text_packet.text.x=1;
 		text_packet.text.y=15;
 		text_packet.text.flags=0;
 	
-		sprintf(text_packet.text.text, "Lines %i", players[nr].lines);
+		sprintf((char*)text_packet.text.text, "Lines %i   ", players[nr].lines);
 	}
 	
 	send_packet(&text_packet);
 }
 
+void sendstate(int nr) {
+	memcpy(blob_packet.id, players[nr].id, 4);
+	unsigned char* c = (unsigned char*)&blob_packet.counter;
+	if(++c[0] || ++c[1] || ++c[2] || ++c[3]) {} // increment counter
 
-int cmd_block = 0;
+	blob_packet.blob.data[DATA_X]=grids[nr].x;
+	blob_packet.blob.data[DATA_Y]=grids[nr].y;
+	blob_packet.blob.data[DATA_STONE]=grids[nr].stone;
+	blob_packet.blob.data[DATA_ROT]=grids[nr].rot;
+	blob_packet.blob.data[DATA_STONE_ID]=grids[nr].stone_count;
+	blob_packet.blob.data[DATA_GAME_ID]=grids[nr].game_id;
+	blob_packet.blob.data[DATA_LAST_X]=grids[nr].last_x;
+	blob_packet.blob.data[DATA_LAST_Y]=grids[nr].last_y;
+	blob_packet.blob.data[DATA_LAST_STONE]=grids[nr].last_stone;
+	blob_packet.blob.data[DATA_LAST_ROT]=grids[nr].last_rot;
+	blob_packet.blob.data[DATA_NEXT_STONE]=grids[nr].next_stone;
+	blob_packet.blob.data[DATA_NEXT_ROT]=grids[nr].next_rot;
+	
+	
+	send_packet(&blob_packet);
+}
 
-void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
+int cmd_block = 0; // block doing commands till we get an "CMD_OK"
+
+static void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 
 	int i;
 
 	switch(cmd) {
 	case CMD_OK:
+//		printf("=> received ok cmd\n");
 		cmd_block = 0;
 		return;
 
 	case CMD_PACKET:
-		printf("received packet %c\n", packet->command);
+		printf("=> received packet %c\n", packet->command);
 
 		if(len != packet->len) {
 			puts("len error");
@@ -321,11 +368,9 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 			case 'B':
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
-						if((players[i].needs_text)||(players[i].needs_lines))   players[i].is_ready_for_text = 1;
-						if(players[i].request_nick) players[i].is_ready_for_nick = 1;
+						players[i].ready_to_send = 1;
 						players[i].last_active = get_time();
 						players[i].button_state = packet->button.state;
-						
 						
 						//paket indicator
 						if(display[10][1+(i*12)]==0)
@@ -344,22 +389,16 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 				
 				break;
 
-			case 'n':
-				for(i = 0; i < MAX_PLAYER; i++) {
-					if(!memcmp(players[i].id, packet->id, 4)) {
-						memcpy(players[i].nick, packet->nick.nick, 18);
-						players[i].request_nick = 0;
-						break;
-					}
-				}
-				
-				break;
-
 			case 'a':
 				for(i = 0; i < MAX_PLAYER; i++) {
 					if(!memcmp(players[i].id, packet->id, 4)) {
-						players[i].needs_text = 0; 
-						players[i].needs_lines = 0; 
+						if (players[i].needs_text)
+							players[i].needs_text = 0; 
+						else if (players[i].needs_lines)
+							players[i].needs_lines = 0;
+						else
+							players[i].needs_gamestate = 0;
+						players[i].ready_to_send = 1;
 						break;
 					}
 				}
@@ -373,13 +412,14 @@ void process_cmd(unsigned char cmd, Packet* packet, unsigned char len) {
 		return;
 
 	default:
-		puts("what???");
+		printf("Unknown command 0x%02X\n", cmd);
 		return;
 	}
 }
 
 int main(int argc, char *argv[]) {
-    srand(SDL_GetTicks());
+	srand(SDL_GetTicks());
+	memset(players, 0, sizeof(players));
     
 
     SDL_Surface* screen = SDL_SetVideoMode(
@@ -412,18 +452,19 @@ int main(int argc, char *argv[]) {
 
 	prepare_announce();
 	prepare_text();
+	prepare_blob();
 	prepare_nickrequest();
 	prepare_acknowledge();
 
-	unsigned char join_ack_addr[5];
-	memcpy(join_ack_addr, game_addr, 5);
-	join_ack_addr[4]++;
+	unsigned char game_send_addr[5];
+	memcpy(game_send_addr, game_receive_addr, 5);
+	game_send_addr[4]++;
 
 	int i;
 	unsigned char data[256];
 	unsigned char pos = 0;
 	unsigned char byte;
-	unsigned char cmd;
+	unsigned char cmd = CMD_OK;
 	int esc = 0;
 
 	unsigned long long time = get_time();
@@ -466,7 +507,8 @@ int main(int argc, char *argv[]) {
 				continue;
 			}
 
-			if(esc) {
+			if (pos >= 254) pos = 0; // the next loop run could go out of our array... we get garbage anyway, so just keep reading garbage
+			if(esc) { // last byte was ESC
 				esc = 0;
 				if(byte == CMD_ESC) {
 					data[pos++] = CMD_ESC;
@@ -486,13 +528,16 @@ int main(int argc, char *argv[]) {
 
 		unsigned long long new_time = get_time();
 
-		if(new_time - tetris_time > 20) {
+		if(new_time - tetris_time > 25) {
 
 			tetris_time = new_time;
 
 			for(i = 0; i < MAX_PLAYERS; i++) {
-				update_grid(&grids[i]);
+				int updt = update_grid(&grids[i]);
 				draw_grid(&grids[i]);
+				if (updt && players[i].occupied) {
+					players[i].needs_gamestate = 1;
+				}
 			}
 
 			if(rerender) {
@@ -509,6 +554,7 @@ int main(int argc, char *argv[]) {
 		if(cmd_block) continue;
 
 		switch(state) {
+		// init
 		case STATE_INIT_PACKETLEN:
 			set_packetlen(32);
 			cmd_block = 1;
@@ -516,30 +562,29 @@ int main(int argc, char *argv[]) {
 			break;
 
 		case STATE_INIT_RX_MAC:
-			send_cmd(CMD_RX_MAC, game_addr, 5);
+			send_cmd(CMD_RX_MAC, game_receive_addr, 5);
 			cmd_block = 1;
-			state = STATE_INIT_TX_MAC;
+			state = STATE_RESTORE_CHAN;
 			break;
-
-		case STATE_INIT_TX_MAC:
-			send_cmd(CMD_TX_MAC, announce_addr, 5);
-			cmd_block = 1;
-			state = STATE_INIT_CHAN;
-			break;
-
-		case STATE_INIT_CHAN:
-		case STATE_ANNOUNCE_RESTORE_CHAN:
+		
+		// default: idle
+		case STATE_RESTORE_CHAN:
 			set_chan(GAME_CHANNEL);
+			cmd_block = 1;
+			state = STATE_RESTORE_MAC;
+			break;
+		
+		case STATE_RESTORE_MAC:
+			send_cmd(CMD_TX_MAC, game_send_addr, 5);
 			cmd_block = 1;
 			state = STATE_IDLE;
 			break;
-		
 		
 		case STATE_IDLE:
 			// announce the game
 			if(new_time - announce_time > 1000) {
 				announce_time = new_time;
-				state = STATE_ANNOUNCE_CHAN;
+				state = STATE_ANNOUNCE_SET_CHAN;
 				break;
 			}
 
@@ -563,55 +608,7 @@ int main(int argc, char *argv[]) {
 			}
 
 
-			// check whether anybody wans to join
-			for(i = 0; i < MAX_JOINER; i++) {
-				if(joiners[i].occupied) {
-					state = STATE_JOIN_ACK_TX_MAC;
-					break;
-				}
-			}
-			if(i != MAX_JOINER) break;
-
-			// check whether anybody should send their nick
-			for(i = 0; i < MAX_PLAYER; i++) {
-				if((players[i].is_ready_for_nick)&&(players[i].request_nick)) {
-					state = STATE_NICKREQUEST_TX_MAC;
-					break;
-				}
-			}
-			if(i != MAX_PLAYER) break;
-
-			// check whether anybody should send get text
-			for(i = 0; i < MAX_PLAYER; i++) {
-				if((players[i].is_ready_for_text)&&((players[i].needs_text)||(players[i].needs_lines))&&(!players[i].request_nick)) {
-					state = STATE_TEXT_TX_MAC;
-					break;
-				}
-			}
-			if(i != MAX_PLAYER) break;
-
-			break;
-
-
-		case STATE_JOIN_ACK_TX_MAC:
-			send_cmd(CMD_TX_MAC, join_ack_addr, 5);
-			cmd_block = 1;
-			state = STATE_JOIN_ACK_ACK;
-			break;
-
-		case STATE_NICKREQUEST_TX_MAC:
-			send_cmd(CMD_TX_MAC, join_ack_addr, 5);
-			cmd_block = 1;
-			state = STATE_NICKREQUEST_NICKREQUEST;
-			break;
-
-		case STATE_TEXT_TX_MAC:
-			send_cmd(CMD_TX_MAC, join_ack_addr, 5);
-			cmd_block = 1;
-			state = STATE_TEXT_TEXT;
-			break;
-
-		case STATE_JOIN_ACK_ACK:
+			// check whether anybody wants to join
 			for(i = 0; i < MAX_JOINER; i++) {
 				if(joiners[i].occupied) {
 					joiners[i].occupied = 0;
@@ -620,58 +617,42 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			assert(i < MAX_JOINER);
-			state = STATE_JOIN_ACK_RESTORE_TX_MAC;
-			break;
+			if(i != MAX_JOINER) break;
 
-		case STATE_NICKREQUEST_NICKREQUEST:
+			// check whether anybody should get text
 			for(i = 0; i < MAX_PLAYER; i++) {
-				if((players[i].is_ready_for_nick)&&(players[i].request_nick)) {
+				if(players[i].ready_to_send && wants_to_send_data(&players[i])) {
 					cmd_block = 1;
-					players[i].is_ready_for_nick=0;
-					players[i].is_ready_for_text=0;
-					nickrequest(i);
+					if (players[i].needs_text || players[i].needs_lines)
+						sendtext(i);
+					else
+						sendstate(i);
+					players[i].ready_to_send = 0;
 					break;
 				}
 			}
-			assert(i < MAX_PLAYER);
-			state = STATE_NICKREQUEST_RESTORE_TX_MAC;
-			break;
+			if(i != MAX_PLAYER) break;
 
-		case STATE_TEXT_TEXT:
-			for(i = 0; i < MAX_PLAYER; i++) {
-				if((players[i].is_ready_for_text)&&((players[i].needs_text)||(players[i].needs_lines))) {
-					cmd_block = 1;
-					players[i].is_ready_for_nick = 0;
-					players[i].is_ready_for_text = 0;
-					sendtext(i);
-					break;
-				}
-			}
-			assert(i < MAX_PLAYER);
-			state = STATE_NICKREQUEST_RESTORE_TX_MAC;
 			break;
 
 
-		case STATE_JOIN_ACK_RESTORE_TX_MAC:
-		case STATE_NICKREQUEST_RESTORE_TX_MAC:
-		case STATE_TEXT_RESTORE_TX_MAC:
-			send_cmd(CMD_TX_MAC, announce_addr, 5);
-			cmd_block = 1;
-			state = STATE_IDLE;
-			break;
-
-
-		case STATE_ANNOUNCE_CHAN:
+		// announce stuff
+		case STATE_ANNOUNCE_SET_CHAN:
 			set_chan(ANNOUNCE_CHANNEL);
 			cmd_block = 1;
-			state = STATE_ANNOUNCE_ANNOUNCE;
+			state = STATE_ANNOUNCE_SET_MAC;
+			break;
+		
+		case STATE_ANNOUNCE_SET_MAC:
+			send_cmd(CMD_TX_MAC, announce_addr, 5);
+			cmd_block = 1;
+			state = STATE_ANNOUNCE_SEND;
 			break;
 
-		case STATE_ANNOUNCE_ANNOUNCE:
+		case STATE_ANNOUNCE_SEND:
 			announce();
 			cmd_block = 1;
-			state = STATE_ANNOUNCE_RESTORE_CHAN;
+			state = STATE_RESTORE_CHAN;
 			break;
 
 		default:

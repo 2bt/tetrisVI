@@ -35,11 +35,14 @@ typedef struct Grid {
 	int input_mov;
 	int input_rep;
 	int input_rot;
+	char game_id; // game-over detection for KIs (the value is unpredictable, but will only be re-used after 256 games)
+	// information about the last stone that was fixed (for KIs). only reliable if stone_count > 0
+	int last_x, last_y, last_stone, last_rot;
 } Grid;
 
 void init_grid(Grid* grid, int nr);
 int activate_grid(Grid* grid);
-void update_grid(Grid* grid);
+int update_grid(Grid* grid); // return: 1 if something changed
 void draw_grid(Grid* grid);
 
 #endif
