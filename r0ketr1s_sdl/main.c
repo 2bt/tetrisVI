@@ -23,7 +23,6 @@ static unsigned char    display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 static Grid grids[MAX_PLAYERS];
 
 
-
 typedef struct {
 	int occupied;
 	unsigned char id[4];
@@ -85,6 +84,7 @@ int is_occupied(unsigned int nr) {
 	return players[nr].occupied;
 
 }
+void player_gameover(unsigned int nr) {}
 
 void push_lines(unsigned int nr, unsigned int lines) {
 
@@ -709,7 +709,7 @@ unsigned int rand_int(unsigned int limit) {
 }
 
 
-void pixel(int x, int y, unsigned char color) {
+void set_frame_buffer(int x, int y, unsigned char color) {
     assert(x < DISPLAY_WIDTH);
     assert(y < DISPLAY_HEIGHT);
     assert(color < 16);

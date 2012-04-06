@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "../pixelfonts/5x3/font.h"
-#include "../main.h"
+#include "../ui.h"
 #include "text.h"
 
 void print_5x3_at (int x,int y, char *text, unsigned char brightness)

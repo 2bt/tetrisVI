@@ -19,6 +19,8 @@ static unsigned char	display[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 
 static Grid grids[MAX_PLAYERS];
 
+void pixel(int x, int y, unsigned char color);
+void push_frame_buffer(void);
 
 
 typedef struct {

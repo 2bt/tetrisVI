@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "grid.h"
-#include "main.h"
+#include "ui.h"
 #include "libs/text.h"
 
 static const char STONES[7][16] = {
