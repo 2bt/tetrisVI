@@ -39,6 +39,7 @@ typedef struct {
 	int needs_title; // "Player <n>"
 	int needs_lines; // will never actually be set at the same time as needs_text (text is sent just once at the beginning)
 	int needs_gamestate;
+	int last_gamestate; // will not send the gamestate too often, since that floods the air and blocks everyone
 	// player state
 	int button_state;
 	long long last_active;
@@ -124,6 +125,7 @@ void join(int nr) {
 				players[i].needs_title = 1; 
 				players[i].needs_lines = 0;
 				players[i].needs_gamestate = 0;
+				players[i].last_gamestate = 0;
 				players[i].last_active = get_time();
 				players[i].id = joiners[nr].id;
 
@@ -193,6 +195,7 @@ void sendstate(int nr) {
 	
 	
 	queue_packet(blob_packet, GAME_CHANNEL, game_send_addr);
+	players[nr].last_gamestate = get_time();
 }
 
 
@@ -371,6 +374,7 @@ int main(int argc, char *argv[]) {
 			for(i = 0; i < MAX_PLAYER; i++) {
 				if(players[i].occupied) {
 					if((get_time() - players[i].last_active) > 10000) {
+						printf("player %i removed\n",i);
 						players[i].occupied=0;
 						init_grid(&grids[i], i);
 					}
@@ -400,7 +404,7 @@ int main(int argc, char *argv[]) {
 						// we expect an ack
 						break;
 					}
-					else if (players[i].needs_gamestate) {
+					else if (players[i].needs_gamestate && players[i].needs_gamestate+50 < new_time) { // wait 50ms between two states (the r0ket makes <= 20ms pause after each paket, but that's okay)
 						sendstate(i);
 						players[i].needs_gamestate = 0;
 						break;

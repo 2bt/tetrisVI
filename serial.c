@@ -50,7 +50,7 @@ enum {
 	STATE_IDLE,
 } state;
 
-static void print_time() {
+void print_time() {
 	struct timeval tv;
 	char tmptime[32];
 	struct tm * tptr;
